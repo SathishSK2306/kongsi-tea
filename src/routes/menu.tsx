@@ -51,7 +51,7 @@ function MenuPage() {
             value={localQ}
             onChange={(e) => setLocalQ(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") navigate({ search: (p) => ({ ...p, q: localQ }) });
+              if (e.key === "Enter") navigate({ search: (p: { category: string; q: string }) => ({ ...p, q: localQ }) });
             }}
             placeholder="Search products..."
             className="pl-9 rounded-full bg-card border-border"
@@ -67,7 +67,7 @@ function MenuPage() {
           {CATEGORIES.map((c) => (
             <button
               key={c.key}
-              onClick={() => navigate({ search: (p) => ({ ...p, category: c.key }) })}
+              onClick={() => navigate({ search: (p: { category: string; q: string }) => ({ ...p, category: c.key }) })}
               className={`px-4 py-2 rounded-full text-xs whitespace-nowrap border ${category === c.key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
             >
               {c.label}
