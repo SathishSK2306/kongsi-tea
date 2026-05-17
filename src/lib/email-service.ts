@@ -7,19 +7,20 @@ const EMAILJS_CUSTOMER_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_CUSTOMER_TEMPL
 const EMAILJS_ADMIN_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_ADMIN_TEMPLATE_ID;
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
-if (!EMAILJS_PUBLIC_KEY) {
-  throw new Error(
-    'Missing EmailJS public key. Add VITE_EMAILJS_PUBLIC_KEY to your .env.local file.'
+const isEmailjsConfigured =
+  Boolean(EMAILJS_PUBLIC_KEY) &&
+  Boolean(EMAILJS_SERVICE_ID) &&
+  Boolean(EMAILJS_CUSTOMER_TEMPLATE_ID) &&
+  Boolean(EMAILJS_ADMIN_TEMPLATE_ID) &&
+  Boolean(ADMIN_EMAIL);
+
+if (isEmailjsConfigured) {
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+} else {
+  console.warn(
+    "EmailJS is not fully configured. Email features will be disabled until the required environment variables are added."
   );
 }
-
-if (!EMAILJS_SERVICE_ID || !EMAILJS_CUSTOMER_TEMPLATE_ID || !EMAILJS_ADMIN_TEMPLATE_ID || !ADMIN_EMAIL) {
-  throw new Error(
-    'Missing EmailJS configuration. Please add VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_CUSTOMER_TEMPLATE_ID, VITE_EMAILJS_ADMIN_TEMPLATE_ID, and VITE_ADMIN_EMAIL to your .env.local file.'
-  );
-}
-
-emailjs.init(EMAILJS_PUBLIC_KEY);
 
 export interface OrderEmailData {
   order_id: string;
@@ -45,6 +46,12 @@ export interface OrderEmailData {
 }
 
 export async function sendOrderEmails(data: OrderEmailData) {
+  if (!isEmailjsConfigured) {
+    throw new Error(
+      "EmailJS is not configured. Please set VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_CUSTOMER_TEMPLATE_ID, VITE_EMAILJS_ADMIN_TEMPLATE_ID, and VITE_ADMIN_EMAIL."
+    );
+  }
+
   try {
     const itemsHTML = data.order_items
       .map(
