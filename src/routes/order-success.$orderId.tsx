@@ -18,7 +18,6 @@ function OrderSuccess() {
       <h1 className="font-serif text-4xl mt-6">Order Placed!</h1>
       <p className="mt-3 text-muted-foreground">Your order <span className="text-primary font-mono">{orderId}</span> has been received. We'll start preparing it shortly.</p>
       <div className="mt-8 flex flex-wrap gap-3 justify-center">
-        <Link to="/orders"><Button variant="outline" className="rounded-full">View Orders</Button></Link>
         <Link to="/menu"><Button className="rounded-full btn-glow">Continue Shopping</Button></Link>
       </div>
     </div>

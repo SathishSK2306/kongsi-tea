@@ -11,7 +11,7 @@ export function Footer() {
               <Coffee className="size-5 text-primary-foreground" />
             </span>
             <span className="font-serif text-xl">
-              Brew<span className="text-gradient-gold">Haven</span>
+              <span className="text-gradient-gold">Kongsi</span>
             </span>
           </Link>
           <p className="text-sm text-muted-foreground max-w-xs">
@@ -29,7 +29,6 @@ export function Footer() {
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li><Link to="/" className="hover:text-foreground">Home</Link></li>
             <li><Link to="/menu" className="hover:text-foreground">Menu</Link></li>
-            <li><Link to="/orders" className="hover:text-foreground">My Orders</Link></li>
             <li><Link to="/cart" className="hover:text-foreground">Cart</Link></li>
           </ul>
         </div>
@@ -53,7 +52,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-border py-5 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} BrewHaven. Crafted with passion.
+        © {new Date().getFullYear()} Kongsi. Premium Wholesale Supplies.
       </div>
     </footer>
   );

@@ -14,7 +14,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   validateSearch: z.object({ redirect: z.string().optional().default("/") }),
   component: AuthPage,
-  head: () => ({ meta: [{ title: "Sign in — BrewHaven" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Kongsi" }] }),
 });
 
 function AuthPage() {
@@ -76,7 +76,7 @@ function AuthPage() {
     <div className="container mx-auto px-4 max-w-md">
       <div className="text-center mb-6">
         <span className="grid place-items-center mx-auto size-12 rounded-full bg-[var(--gradient-amber)]"><Coffee className="size-6 text-primary-foreground" /></span>
-        <h1 className="font-serif text-3xl mt-3">Welcome to BrewHaven</h1>
+        <h1 className="font-serif text-3xl mt-3">Welcome to Kongsi</h1>
         <p className="text-sm text-muted-foreground">Partner store access</p>
       </div>
       <div className="glass border border-border rounded-2xl p-6">

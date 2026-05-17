@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 const links = [
   { to: "/", label: "Home" },
   { to: "/menu", label: "Menu" },
-  { to: "/orders", label: "Orders" },
 ];
 
 export function Navbar() {
@@ -38,7 +37,7 @@ export function Navbar() {
             <Coffee className="size-5 text-primary-foreground" />
           </span>
           <span className="font-serif text-xl tracking-tight">
-            Brew<span className="text-gradient-gold">Haven</span>
+            <span className="text-gradient-gold">Kongsi</span>
           </span>
         </Link>
 

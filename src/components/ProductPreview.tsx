@@ -39,7 +39,7 @@ export function ProductPreview({
             </div>
             <div>
               <div className="text-3xl font-bold text-gradient-gold">{formatINR(product.price)}</div>
-              <div className="text-xs text-muted-foreground">per {product.unit} • {product.stock_qty} in stock</div>
+              <div className="text-xs text-muted-foreground">per {product.unit}</div>
             </div>
             <div className="flex items-center gap-3">
               <div className="inline-flex items-center rounded-full border border-border">

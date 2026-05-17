@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/cart")({
   component: CartPage,
-  head: () => ({ meta: [{ title: "Cart — BrewHaven" }] }),
+  head: () => ({ meta: [{ title: "Cart — Kongsi" }] }),
 });
 
 function CartPage() {

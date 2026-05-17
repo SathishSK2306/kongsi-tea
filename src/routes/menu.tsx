@@ -17,7 +17,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/menu")({
   validateSearch: searchSchema,
   component: MenuPage,
-  head: () => ({ meta: [{ title: "Menu — BrewHaven" }] }),
+  head: () => ({ meta: [{ title: "Menu — Kongsi" }] }),
 });
 
 function MenuPage() {

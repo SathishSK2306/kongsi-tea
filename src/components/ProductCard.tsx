@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
@@ -27,14 +27,28 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   const img = product.image || CATEGORY_IMG[product.category];
   const oos = product.stock_qty <= 0;
 
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    add({
+      id: product.id,
+      product_id: product.product_id,
+      name: product.product_name,
+      price: Number(product.price),
+      image: product.image,
+      unit: product.unit,
+    });
+    toast.success("Added to cart", { description: product.product_name });
+  };
+
   return (
     <>
       <motion.article
+        onClick={() => setOpen(true)}
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.5 }}
-        className="card-hover group relative rounded-2xl overflow-hidden glass border border-border/60"
+        className="card-hover group relative rounded-2xl overflow-hidden glass border border-border/60 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105"
       >
         <div className="relative aspect-square overflow-hidden bg-muted">
           <img
@@ -44,13 +58,6 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
             className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent opacity-90" />
-          <button
-            onClick={() => setOpen(true)}
-            className="absolute top-3 right-3 grid place-items-center size-9 rounded-full glass-strong text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-            aria-label="Quick view"
-          >
-            <Eye className="size-4" />
-          </button>
           {product.featured && (
             <span className="absolute top-3 left-3 px-2 py-0.5 text-[10px] uppercase tracking-wider rounded-full bg-primary/90 text-primary-foreground">
               Featured
@@ -66,23 +73,13 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
             <div>
               <div className="text-lg font-semibold text-gradient-gold">{formatINR(product.price)}</div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                per {product.unit} {oos && "• Out of stock"}
+                per {product.unit}
               </div>
             </div>
             <Button
               size="icon"
               disabled={oos}
-              onClick={() => {
-                add({
-                  id: product.id,
-                  product_id: product.product_id,
-                  name: product.product_name,
-                  price: Number(product.price),
-                  image: product.image,
-                  unit: product.unit,
-                });
-                toast.success("Added to cart", { description: product.product_name });
-              }}
+              onClick={handleAddToCart}
               className="rounded-full btn-glow"
               aria-label="Add to cart"
             >

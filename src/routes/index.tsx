@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "BrewHaven — Wholesale Coffee, Tea & Cafe Supplies" },
+      { title: "Kongsi — Wholesale Coffee, Tea & Cafe Supplies" },
       { name: "description", content: "Premium handcrafted coffee, tea leaves, packaging and food supplies — wholesale for cafes across India." },
     ],
   }),
@@ -114,18 +114,18 @@ function Landing() {
         >
           <span className="font-script text-2xl text-primary">About Us</span>
           <h2 className="font-serif text-4xl md:text-5xl mt-1">
-            More Than Just <span className="text-gradient-gold">a Coffee</span>
+            More Than Just <span className="text-gradient-gold">Supplies</span>
           </h2>
           <p className="mt-4 text-muted-foreground max-w-md">
-            At BrewHaven, we believe coffee is more than a drink — it's an experience.
-            Every cup we serve is a blend of passion, quality, and perfection.
+            At Kongsi, we believe premium wholesale supplies are essential for any thriving cafe or dessert shop.
+            Every product we offer is carefully sourced and curated for quality, consistency, and excellence.
           </p>
           <ul className="mt-6 space-y-3">
             {[
-              "Sustainably Sourced Beans",
-              "Ethically Traded",
-              "Freshly Roasted",
-              "Barista Crafted",
+              "Premium Quality Products",
+              "Wholesale Pricing",
+              "Reliable Delivery",
+              "Expert Support",
             ].map((t) => (
               <li key={t} className="flex items-center gap-3 text-sm">
                 <span className="grid place-items-center size-7 rounded-full bg-primary/15 text-primary">
@@ -136,7 +136,7 @@ function Landing() {
             ))}
           </ul>
           <Link to="/menu" className="inline-block mt-8">
-            <Button className="rounded-full btn-glow">Learn More <ArrowRight className="ml-1 size-4" /></Button>
+            <Button className="rounded-full btn-glow">Explore Catalog <ArrowRight className="ml-1 size-4" /></Button>
           </Link>
         </motion.div>
       </section>
