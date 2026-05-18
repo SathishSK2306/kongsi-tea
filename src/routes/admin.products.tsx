@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Package, Trash2, Edit3 } from "lucide-react";
 import { toast } from "sonner";
-import { genId } from "@/lib/format";
+import { formatINR, genId } from "@/lib/format";
 
 const categories = [
   { value: "imported_materials", label: "Imported Materials" },
@@ -189,7 +189,7 @@ function AdminProductsPage() {
           </Link>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+        <div className="grid gap-6 items-start xl:grid-cols-[420px_1fr]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -316,7 +316,7 @@ function AdminProductsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass border border-border/60 rounded-3xl p-6"
+            className="glass border border-border/60 rounded-3xl p-5"
           >
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
@@ -338,20 +338,36 @@ function AdminProductsPage() {
             ) : (
               <div className="space-y-4">
                 {products.map((product) => (
-                  <div key={product.id} className="rounded-3xl border border-border/50 p-4 shadow-sm hover:shadow-md transition">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">{product.category}</p>
-                        <h3 className="text-xl font-semibold">{product.product_name}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{product.description}</p>
-                        <p className="mt-3 text-sm text-muted-foreground">Product ID: {product.product_id}</p>
+                  <div
+                    key={product.id}
+                    className="grid gap-4 rounded-3xl border border-border/50 bg-background/70 p-4 shadow-[0_20px_50px_-30px_rgba(67,51,27,0.55)] transition hover:-translate-y-0.5 hover:shadow-lg"
+                  >
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                      <div className="h-28 min-w-28 overflow-hidden rounded-3xl bg-muted/20 shadow-inner">
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.product_name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center px-3 text-center text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                            No image
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-col items-start gap-3 sm:items-end">
-                        <div className="text-right">
-                          <p className="font-semibold">₹{Number(product.price).toFixed(2)}</p>
-                          <p className="text-sm text-muted-foreground">{product.stock_qty} {product.unit}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{product.category}</p>
+                        <h3 className="mt-2 text-xl font-semibold text-foreground">{product.product_name}</h3>
+                        <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{product.description}</p>
+                        <p className="mt-4 text-sm text-muted-foreground">Product ID: {product.product_id}</p>
+                      </div>
+                      <div className="flex flex-col items-start gap-3 rounded-3xl bg-card/70 p-3 text-right shadow-sm md:items-end">
+                        <div className="rounded-2xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 shadow-inner shadow-amber-100/70">
+                          {formatINR(Number(product.price))}
                         </div>
-                        <div className="flex gap-2 flex-wrap">
+                        <p className="text-sm text-muted-foreground">{product.stock_qty} {product.unit}</p>
+                        <div className="flex flex-wrap gap-2">
                           <Button type="button" variant="outline" onClick={() => handleEdit(product)} className="gap-2">
                             <Edit3 className="size-4" /> Edit
                           </Button>

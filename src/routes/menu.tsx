@@ -76,7 +76,7 @@ function MenuPage() {
         </div>
       </div>
 
-      <div className="mt-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="mt-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
         {isLoading
           ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)
           : data?.length === 0
