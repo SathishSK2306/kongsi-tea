@@ -26,14 +26,10 @@ export function Navbar() {
   }, []);
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "glass-strong py-3" : "py-5"
-      }`}
-    >
+    <header className={`fixed inset-x-0 top-0 z-50 glass-strong transition-all duration-300 ${scrolled ? "py-3 shadow-md" : "py-4 shadow-sm"}`}>
       <div className="container mx-auto px-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <span className="grid place-items-center size-9 rounded-full bg-[var(--gradient-amber)] shadow-[var(--shadow-glow)] group-hover:scale-110 transition-transform">
+          <span className="grid place-items-center size-9 rounded-full bg-amber-gradient shadow-glow-var group-hover:scale-110 transition-transform">
             <Coffee className="size-5 text-primary-foreground" />
           </span>
           <span className="font-serif text-xl tracking-tight">
@@ -41,24 +37,18 @@ export function Navbar() {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-3">
           {links.map((l) => {
             const active = path === l.to;
             return (
               <Link
                 key={l.to}
                 to={l.to}
-                className={`relative px-4 py-2 text-sm transition-colors ${
-                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`relative rounded-full px-4 py-2 text-sm transition-all duration-200 ${
+                  active ? "bg-[rgba(122,74,42,0.1)] text-foreground font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-[rgba(122,74,42,0.08)]"
                 }`}
               >
                 {l.label}
-                {active && (
-                  <motion.span
-                    layoutId="navdot"
-                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary"
-                  />
-                )}
               </Link>
             );
           })}

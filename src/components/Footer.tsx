@@ -3,11 +3,11 @@ import { Coffee, Instagram, Twitter, Facebook, Youtube, Phone, Mail, MapPin } fr
 
 export function Footer() {
   return (
-    <footer className="mt-24 border-t border-border bg-card/40">
+    <footer className="mt-24 border-t border-[rgba(131,86,55,0.16)] bg-[rgba(255,248,238,0.85)]">
       <div className="container mx-auto px-4 py-14 grid gap-10 md:grid-cols-4">
         <div>
           <Link to="/" className="flex items-center gap-2 mb-4">
-            <span className="grid place-items-center size-9 rounded-full bg-[var(--gradient-amber)]">
+            <span className="grid place-items-center size-9 rounded-full bg-amber-gradient">
               <Coffee className="size-5 text-primary-foreground" />
             </span>
             <span className="font-serif text-xl">

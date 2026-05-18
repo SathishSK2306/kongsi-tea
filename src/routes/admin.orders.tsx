@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { formatINR } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrdersPage,
-  head: () => ({ meta: [{ title: "Order History â€” Kongsi Admin" }] }),
+  head: () => ({ meta: [{ title: "Order History — Kongsi Admin" }] }),
 });
 
 function AdminOrdersPage() {
@@ -142,7 +143,7 @@ function AdminOrdersPage() {
                         <div>{order.customer_name}</div>
                         <div className="text-sm text-muted-foreground">{order.phone}</div>
                       </td>
-                      <td className="px-4 py-4">â‚¹{Number(order.total_amount).toFixed(2)}</td>
+                      <td className="px-4 py-4">{formatINR(Number(order.total_amount))}</td>
                       <td className="px-4 py-4">
                         <div className="space-y-2">
                           <select

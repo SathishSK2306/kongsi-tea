@@ -38,13 +38,10 @@ function Landing() {
     <div>
       {/* HERO */}
       <section className="container mx-auto px-4 pt-6 md:pt-10">
-        <div className="relative overflow-hidden rounded-3xl glass border border-border min-h-[560px] md:min-h-[640px] grid md:grid-cols-2">
-          <img
-            src={heroImg}
-            alt="Premium coffee with latte art"
-            className="absolute inset-0 size-full object-cover md:opacity-100 opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-card via-card/85 md:via-card/70 to-transparent" />
+        <div className="relative overflow-hidden rounded-[3rem] glass border border-border min-h-[620px] md:min-h-[720px] grid gap-8 md:grid-cols-[1.2fr_0.95fr]">
+          <div className="absolute inset-0 bg-hero-gradient" />
+          <div className="absolute -left-10 -top-10 h-56 w-56 rounded-full bg-[rgba(231,173,115,0.25)] blur-3xl" />
+          <div className="absolute right-0 top-[35%] h-72 w-72 rounded-full bg-[rgba(255,244,229,0.72)] blur-3xl hidden md:block" />
 
           <div className="relative z-10 p-8 md:p-14 flex flex-col justify-center">
             <motion.div
@@ -52,47 +49,68 @@ function Landing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <span className="font-script text-2xl text-primary">Rich. Smooth. Perfect.</span>
-              <h1 className="font-serif text-5xl md:text-7xl leading-[1.05] mt-2">
-                Experience<br />
-                Coffee Like<br />
-                <span className="text-gradient-gold">Never Before</span>
+              <span className="font-script text-3xl text-secondary">Sip the art of craft coffee</span>
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[rgba(122,74,42,0.18)] bg-[rgba(255,245,235,0.85)] px-4 py-2 text-sm text-muted-foreground shadow-sm">
+                <Sparkles className="size-4 text-primary" />
+                Wholesale supplies for cafes & dessert bars
+              </div>
+              <h1 className="font-serif text-5xl md:text-7xl leading-[0.96] mt-6 max-w-xl">
+                Cafe-grade coffee supplies for every <br />
+                <span className="text-gradient-gold">shared moment</span>
               </h1>
-              <p className="mt-5 max-w-md text-muted-foreground">
-                Handcrafted ingredients, premium packaging and gourmet menu items —
-                wholesale supplies for India's finest cafes & bubble tea bars.
+              <p className="mt-6 max-w-2xl text-muted-foreground">
+                Handcrafted ingredients, premium packaging, and elegant presentation built for modern cafes and boutique tea shops.
               </p>
-              <div className="mt-7 flex flex-wrap gap-3">
+              <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/menu">
-                  <Button size="lg" className="rounded-full btn-glow">
+                  <Button size="lg" className="rounded-full btn-glow bg-primary text-primary-foreground hover:bg-[#8c5139]">
                     Explore Menu <ArrowRight className="ml-1 size-4" />
                   </Button>
                 </Link>
                 <Link to="/auth">
-                  <Button size="lg" variant="outline" className="rounded-full">
+                  <Button size="lg" variant="outline" className="rounded-full border-[rgba(122,74,42,0.2)] bg-[rgba(255,245,235,0.7)] text-foreground hover:bg-[rgba(235,192,160,0.3)]">
                     Become a Partner
                   </Button>
                 </Link>
               </div>
 
-              <div className="mt-10 flex flex-wrap gap-6">
+              <div className="mt-10 grid gap-3 sm:grid-cols-3">
                 {[
-                  { Icon: Award, label: "Premium", sub: "Quality Beans" },
-                  { Icon: Coffee, label: "Expertly", sub: "Roasted" },
-                  { Icon: Leaf, label: "Made With", sub: "Love" },
+                  { Icon: Award, label: "Premium", sub: "Quality beans" },
+                  { Icon: Coffee, label: "Handcrafted", sub: "Small-batch roast" },
+                  { Icon: Leaf, label: "Seasonal", sub: "Curated blends" },
                 ].map(({ Icon, label, sub }) => (
-                  <div key={label} className="flex items-center gap-2.5">
-                    <span className="grid place-items-center size-9 rounded-full border border-border bg-muted/50">
-                      <Icon className="size-4 text-primary" />
+                  <div key={label} className="flex items-center gap-3 rounded-3xl border border-[rgba(122,74,42,0.12)] bg-[rgba(255,245,235,0.75)] p-4 shadow-sm">
+                    <span className="grid place-items-center h-12 w-12 rounded-3xl bg-[rgba(122,74,42,0.12)] text-primary">
+                      <Icon className="size-5" />
                     </span>
-                    <div className="text-xs leading-tight">
-                      <div className="font-medium">{label}</div>
-                      <div className="text-muted-foreground">{sub}</div>
+                    <div>
+                      <div className="text-sm font-semibold">{label}</div>
+                      <div className="text-sm text-muted-foreground">{sub}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </motion.div>
+          </div>
+
+          <div className="relative z-10 p-8 md:p-14 flex items-center justify-center">
+            <div className="relative w-full max-w-md rounded-[2.25rem] border border-border bg-white/90 p-6 shadow-card-var">
+              <div className="relative overflow-hidden rounded-[2rem] border border-[rgba(131,86,55,0.16)]">
+                <img src={heroImg} alt="Premium coffee with latte art" className="size-full object-cover" />
+              </div>
+              <div className="mt-6 space-y-3">
+                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Barista favorite</p>
+                <h3 className="font-serif text-3xl">Velvet Latte Blend</h3>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Rich caramel notes, silky texture, and balanced roast crafted for boutique coffee experiences.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <span className="rounded-full bg-[rgba(122,74,42,0.1)] px-4 py-2 text-xs font-medium text-primary">Fresh Roasted</span>
+                <span className="rounded-full bg-[rgba(226,184,145,0.3)] px-4 py-2 text-xs font-medium text-secondary">Brew Ready</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -246,16 +264,16 @@ function Landing() {
 
       {/* CTA */}
       <section className="container mx-auto px-4 mt-24">
-        <div className="rounded-3xl p-10 md:p-16 text-center relative overflow-hidden border border-border" style={{ background: "var(--gradient-amber)" }}>
-          <h2 className="font-serif text-3xl md:text-5xl text-primary-foreground">
+        <div className="rounded-3xl p-10 md:p-16 text-center relative overflow-hidden border border-border bg-amber-gradient">
+          <h2 className="font-serif text-3xl md:text-5xl text-foreground">
             Ready to upgrade your cafe?
           </h2>
-          <p className="mt-3 text-primary-foreground/85 max-w-xl mx-auto">
+          <p className="mt-3 text-foreground/90 max-w-xl mx-auto">
             Sign up as a partner store, browse the catalog, and place your first wholesale order today.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link to="/auth"><Button size="lg" variant="secondary" className="rounded-full">Become a Partner</Button></Link>
-            <Link to="/menu"><Button size="lg" variant="outline" className="rounded-full bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10">Browse Menu</Button></Link>
+            <Link to="/menu"><Button size="lg" variant="outline" className="rounded-full bg-transparent border-foreground/40 text-foreground hover:bg-foreground/10">Browse Menu</Button></Link>
           </div>
         </div>
       </section>
