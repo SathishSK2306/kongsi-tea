@@ -5,12 +5,13 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { sendOrderEmails } from "@/lib/email-service";
+import { loadRazorpayScript, openRazorpayCheckout, type RazorpayPaymentResponse } from "@/lib/razorpay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatINR, genId } from "@/lib/format";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/checkout")({
@@ -144,6 +145,118 @@ function CheckoutPage() {
   const shipping = total >= 2499 ? 0 : 99;
   const grand = total + shipping;
 
+  const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_xxxxxxxxx";
+  const isPlaceholderKey = RAZORPAY_KEY_ID === "rzp_test_xxxxxxxxx";
+
+  async function saveOrder(payment: RazorpayPaymentResponse) {
+    const newOrderId = genId("ORD-");
+    const responseOrderId = payment.razorpay_order_id || `rzp_test_order_${Date.now()}`;
+
+    const createOrderPayload = (includePaymentMetadata: boolean) => ({
+      order_id: newOrderId,
+      user_id: user!.id,
+      store_name: form.store_name,
+      store_id: form.store_uuid || null,
+      customer_name: form.owner_name,
+      phone: form.phone,
+      email: form.email,
+      address: form.delivery_address,
+      total_amount: grand,
+      notes: form.notes || null,
+      ...(includePaymentMetadata
+        ? {
+            payment_id: payment.razorpay_payment_id,
+            razorpay_order_id: responseOrderId,
+            payment_method: "Razorpay",
+            payment_status: "paid",
+          }
+        : {}),
+    });
+
+    const { data: order, error } = await supabase
+      .from("orders")
+      .insert(createOrderPayload(true))
+      .select()
+      .single();
+
+    let persistedOrder = order;
+    let insertError = error;
+
+    const needsFallback =
+      error &&
+      (error.code === "PGRST204" ||
+        error.message?.includes("Could not find the 'payment_id' column") ||
+        error.message?.includes("payment_id") ||
+        error.message?.includes("payment_method") ||
+        error.message?.includes("razorpay_order_id"));
+
+    if (needsFallback) {
+      const fallbackResult = await supabase
+        .from("orders")
+        .insert(createOrderPayload(false))
+        .select()
+        .single();
+
+      persistedOrder = fallbackResult.data;
+      insertError = fallbackResult.error;
+
+      if (persistedOrder && !insertError) {
+        toast.warning(
+          "Order saved without payment metadata because the database schema is missing the payment columns. Apply the latest migration to preserve payment details."
+        );
+      }
+    }
+
+    if (insertError || !persistedOrder) {
+      throw insertError || new Error("Unable to persist order payment details.");
+    }
+
+    const { error: itemsErr } = await supabase.from("order_items").insert(
+      items.map((it) => ({
+        order_id: persistedOrder.id,
+        product_id: it.id,
+        product_name: it.name,
+        quantity: it.qty,
+        price: it.price,
+        subtotal: it.price * it.qty,
+      }))
+    );
+
+    if (itemsErr) {
+      throw itemsErr;
+    }
+
+    try {
+      await sendOrderEmails({
+        order_id: newOrderId,
+        store_name: form.store_name,
+        store_id: form.store_id,
+        customer_name: form.owner_name,
+        phone: form.phone,
+        email: form.email,
+        address: form.delivery_address,
+        total_amount: grand,
+        subtotal: total,
+        shipping: shipping,
+        payment_method: "Razorpay",
+        notes: form.notes,
+        order_items: items.map((it) => ({
+          product_id: it.product_id,
+          product_name: it.name,
+          quantity: it.qty,
+          price: it.price,
+          subtotal: it.price * it.qty,
+        })),
+      });
+      toast.success("Order confirmation sent to your email!");
+    } catch (emailError) {
+      console.warn("Email notification failed, but order was created:", emailError);
+      toast.warning("Order placed! Email notification will be sent shortly.");
+    }
+
+    return newOrderId;
+  }
+
   async function placeOrder() {
     if (!validateForm()) {
       toast.error("Please fix the errors in the form");
@@ -152,76 +265,37 @@ function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      // Create order
-      const newOrderId = genId("ORD-");
-      const { data: order, error } = await supabase
-        .from("orders")
-        .insert({
-          order_id: newOrderId,
-          user_id: user!.id,
-          store_name: form.store_name,
-          store_id: form.store_uuid || null,
-          customer_name: form.owner_name,
-          phone: form.phone,
-          email: form.email,
-          address: form.delivery_address,
-          total_amount: grand,
-          notes: form.notes || null,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Insert order items
-      const { error: itemsErr } = await supabase.from("order_items").insert(
-        items.map((it) => ({
-          order_id: order.id,
-          product_id: it.id,
-          product_name: it.name,
-          quantity: it.qty,
-          price: it.price,
-          subtotal: it.price * it.qty,
-        }))
-      );
-
-      if (itemsErr) throw itemsErr;
-
-      // Send confirmation emails to customer and admin
-      try {
-        await sendOrderEmails({
-          order_id: newOrderId,
-          store_name: form.store_name,
-          store_id: form.store_id,
-          customer_name: form.owner_name,
-          phone: form.phone,
-          email: form.email,
-          address: form.delivery_address,
-          total_amount: grand,
-          subtotal: total,
-          shipping: shipping,
-          notes: form.notes,
-          order_items: items.map((it) => ({
-            product_id: it.product_id,
-            product_name: it.name,
-            quantity: it.qty,
-            price: it.price,
-            subtotal: it.price * it.qty,
-          })),
-        });
-        toast.success("Order confirmation sent to your email!");
-      } catch (emailError) {
-        console.warn("Email notification failed, but order was created:", emailError);
-        toast.warning("Order placed! Email notification will be sent shortly.");
+      if (!RAZORPAY_KEY_ID) {
+        throw new Error("Razorpay key is missing. Please set VITE_RAZORPAY_KEY_ID.");
       }
 
+      if (isPlaceholderKey) {
+        toast.warning(
+          "Razorpay is running with the temporary placeholder key. Replace VITE_RAZORPAY_KEY_ID with a test key for a working payment flow."
+        );
+      }
+
+      toast.success("Opening Razorpay checkout...");
+      await loadRazorpayScript();
+
+      const paymentResponse = await openRazorpayCheckout({
+        amount: grand,
+        name: form.owner_name,
+        description: "Kongsi order payment",
+        email: form.email,
+        contact: form.phone,
+      });
+
+      toast.success("Payment successful. Saving your order...");
+      const generatedOrderId = await saveOrder(paymentResponse);
+
       clear();
-      setOrderId(newOrderId);
+      setOrderId(generatedOrderId);
       setOrderPlaced(true);
       toast.success("Order placed successfully!");
     } catch (e) {
       const err = e as Error;
-      toast.error(err.message || "Failed to place order");
+      toast.error(err.message || "Payment failed. Order was not created.");
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -434,7 +508,7 @@ function CheckoutPage() {
               disabled={submitting}
               className="w-full mt-6 rounded-full btn-glow py-2 font-medium"
             >
-              {submitting ? "Processing..." : `Place Order • ${formatINR(grand)}`}
+              {submitting ? "Opening payment..." : `Proceed Payment • ${formatINR(grand)}`}
             </Button>
           </motion.div>
 
@@ -447,4 +521,3 @@ function CheckoutPage() {
   );
 }
 
-import { ShoppingBag } from "lucide-react";

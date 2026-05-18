@@ -73,6 +73,9 @@ CREATE TABLE public.orders (
   total_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   order_status order_status NOT NULL DEFAULT 'pending',
   payment_status payment_status NOT NULL DEFAULT 'unpaid',
+  payment_id TEXT,
+  razorpay_order_id TEXT,
+  payment_method TEXT,
   packed_status BOOLEAN NOT NULL DEFAULT FALSE,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
