@@ -45,7 +45,7 @@ export function Footer() {
         <div>
           <h4 className="font-script text-primary text-lg mb-3">Contact Us</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2"><Phone className="size-4 text-primary" /> +91 98765 43210</li>
+            <li className="flex items-center gap-2"><Phone className="size-4 text-primary" /> +91 xxxxxxxxx</li>
             <li className="flex items-center gap-2"><Mail className="size-4 text-primary" /> hello@brewhaven.com</li>
             <li className="flex items-start gap-2"><MapPin className="size-4 text-primary mt-0.5" /> 123 Coffee Lane, Brew City — 560001</li>
           </ul>

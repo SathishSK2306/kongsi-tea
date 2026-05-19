@@ -192,7 +192,7 @@ function Landing() {
       </section>
 
       {/* POPULAR PICKS */}
-      <section className="container mx-auto px-4 mt-24">
+      {/* <section className="container mx-auto px-4 mt-24">
         <div className="text-center">
           <span className="font-script text-2xl text-primary">Our Signature</span>
           <h2 className="font-serif text-4xl md:text-5xl">Popular Picks</h2>
@@ -210,7 +210,7 @@ function Landing() {
             </Button>
           </Link>
         </div>
-      </section>
+      </section> */}
 
       {/* WHY US */}
       <section className="container mx-auto px-4 mt-24">
@@ -235,7 +235,7 @@ function Landing() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="container mx-auto px-4 mt-24">
+      {/* <section className="container mx-auto px-4 mt-24">
         <div className="text-center">
           <span className="font-script text-2xl text-primary">What They Say</span>
           <h2 className="font-serif text-4xl md:text-5xl">Loved by Cafes</h2>
@@ -260,10 +260,10 @@ function Landing() {
             </motion.div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* CTA */}
-      <section className="container mx-auto px-4 mt-24">
+      {/* <section className="container mx-auto px-4 mt-24">
         <div className="rounded-3xl p-10 md:p-16 text-center relative overflow-hidden border border-border bg-amber-gradient">
           <h2 className="font-serif text-3xl md:text-5xl text-foreground">
             Ready to upgrade your cafe?
@@ -276,7 +276,7 @@ function Landing() {
             <Link to="/menu"><Button size="lg" variant="outline" className="rounded-full bg-transparent border-foreground/40 text-foreground hover:bg-foreground/10">Browse Menu</Button></Link>
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
