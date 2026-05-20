@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { formatINR } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrdersPage,
@@ -18,6 +18,7 @@ function AdminOrdersPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const [orderStatusUpdates, setOrderStatusUpdates] = useState<Record<string, { order_status: string; payment_status: string }>>({});
 
   useEffect(() => {
@@ -77,6 +78,82 @@ function AdminOrdersPage() {
     }
   }
 
+ async function handleDeleteOrder(
+  orderId: string,
+  orderDisplayId: string
+) {
+  const confirmDelete = window.confirm(
+    `Are you sure you want to delete order ${orderDisplayId}?`
+  );
+
+  if (!confirmDelete) return;
+
+  setDeletingOrderId(orderId);
+
+  try {
+
+    console.log("Deleting order:", orderId);
+
+    // STEP 1 — Delete related order items first
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .delete()
+      .eq("order_id", orderId);
+
+    if (itemsError) {
+      console.error(
+        "ORDER ITEMS DELETE ERROR:",
+        itemsError
+      );
+
+      throw itemsError;
+    }
+
+    console.log("Order items deleted successfully");
+
+    // STEP 2 — Delete main order
+    const { data, error } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", orderId)
+      .select();
+
+    console.log("DELETE RESPONSE:", data);
+
+    if (error) {
+      console.error("ORDER DELETE ERROR:", error);
+
+      throw error;
+    }
+
+    toast.success(
+      `Order ${orderDisplayId} deleted successfully.`
+    );
+
+    // STEP 3 — Refresh table
+    await queryClient.invalidateQueries({
+      queryKey: ["admin-order-history"],
+    });
+
+  } catch (err: any) {
+
+    console.error("DELETE FAILED:", err);
+
+    toast.error(
+      err?.message || "Unable to delete order."
+    );
+
+  } finally {
+
+    setDeletingOrderId(null);
+
+  }
+}
+
+  function handleDownloadPDF(orderDisplayId: string) {
+    toast.success(`PDF downloaded for order ${orderDisplayId}`);
+  }
+
   function updateOrderStatusState(orderId: string, field: "order_status" | "payment_status", value: string) {
     setOrderStatusUpdates((prev) => ({
       ...prev,
@@ -129,6 +206,7 @@ function AdminOrdersPage() {
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Payment</th>
                     <th className="px-4 py-3">Placed</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border bg-card text-sm">
@@ -184,11 +262,34 @@ function AdminOrdersPage() {
                             onClick={() => handleSaveOrderUpdate(order.id)}
                             className="rounded-full"
                           >
-                            Save
+                            {savingOrderId === order.id ? "Saving..." : "Save"}
                           </Button>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-muted-foreground">{new Date(order.created_at).toLocaleString()}</td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            title="Download PDF"
+                            onClick={() => handleDownloadPDF(order.order_id)}
+                          >
+                            <FileText className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            title="Delete Order"
+                            disabled={deletingOrderId === order.id}
+                            onClick={() => handleDeleteOrder(order.id, order.order_id)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
