@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -122,13 +122,9 @@ function RootComponent() {
 function AppShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = path.startsWith("/admin");
+  const isAuthPage = path.startsWith("/auth");
 
-  // Invalidate router on path change to refresh auth state on admin pages
-  useEffect(() => {
-    /* noop */
-  }, [path]);
-
-  if (isAdmin) {
+  if (isAdmin || isAuthPage) {
     return (
       <>
         <Outlet />
@@ -137,10 +133,32 @@ function AppShell() {
     );
   }
 
+  return <AuthedShell />;
+}
+
+function AuthedShell() {
+  const { user, loading } = useAuth();
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.navigate({ to: "/auth", search: { redirect: path } });
+    }
+  }, [loading, user, path, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-[60vh] grid place-items-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+
   return (
     <>
       <Navbar />
-      <main className="pt-20 pb-24 md:pb-12 min-h-[60vh]">
+      <main className="pt-20 pb-28 md:pb-12 min-h-[60vh]">
         <Outlet />
       </main>
       <Footer />

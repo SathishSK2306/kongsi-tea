@@ -57,10 +57,9 @@ function AdminProductsPage() {
       });
       if (error) throw error;
 
-      const { data: publicUrlData, error: publicUrlError } = supabase.storage
+      const { data: publicUrlData } = supabase.storage
         .from(imageBucketName)
         .getPublicUrl(filePath);
-      if (publicUrlError) throw publicUrlError;
       if (!publicUrlData?.publicUrl) throw new Error("Unable to get public URL.");
 
       setForm((prev) => ({ ...prev, image: publicUrlData.publicUrl }));
@@ -117,20 +116,20 @@ function AdminProductsPage() {
       }
 
       if (editingId) {
-        const { error } = await supabase.from("products").update(payload).eq("id", editingId);
+        const { error } = await supabase.from("products").update(payload as never).eq("id", editingId);
         if (error) throw error;
         toast.success("Product updated successfully.");
       } else {
         const { error } = await supabase.from("products").insert({
           product_id: genId("PR-"),
           ...payload,
-        });
+        } as never);
         if (error) throw error;
         toast.success("Product added successfully.");
       }
 
       resetForm();
-      queryClient.invalidateQueries(["admin-products"]);
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
     } catch (err) {
       toast.error("Unable to save product.");
       console.error(err);
@@ -146,7 +145,7 @@ function AdminProductsPage() {
       const { error } = await supabase.from("products").delete().eq("id", id);
       if (error) throw error;
       toast.success("Product deleted.");
-      queryClient.invalidateQueries(["admin-products"]);
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       if (editingId === id) resetForm();
     } catch (err) {
       toast.error("Unable to delete product.");

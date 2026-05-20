@@ -74,7 +74,7 @@ function AdminCustomersPage() {
       if (error) throw error;
       toast.success("Store added successfully.");
       setForm(emptyStore);
-      queryClient.invalidateQueries(["admin-customers"]);
+      queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
     } catch (err) {
       toast.error("Unable to add store.");
       console.error(err);
@@ -90,7 +90,7 @@ function AdminCustomersPage() {
       const { error } = await supabase.from("stores").delete().eq("id", id);
       if (error) throw error;
       toast.success("Store deleted.");
-      queryClient.invalidateQueries(["admin-customers"]);
+      queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
     } catch (err) {
       toast.error("Unable to delete store.");
       console.error(err);

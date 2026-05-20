@@ -59,7 +59,7 @@ function MenuPage() {
         </div>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           <button
-            onClick={() => navigate({ search: (p) => ({ ...p, category: "" }) })}
+            onClick={() => navigate({ search: (p: { category: string; q: string }) => ({ ...p, category: "" }) })}
             className={`px-4 py-2 rounded-full text-xs whitespace-nowrap border ${!category ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
           >
             All

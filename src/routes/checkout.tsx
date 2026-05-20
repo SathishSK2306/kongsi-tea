@@ -175,7 +175,7 @@ function CheckoutPage() {
 
     const { data: order, error } = await supabase
       .from("orders")
-      .insert(createOrderPayload(true))
+      .insert(createOrderPayload(true) as never)
       .select()
       .single();
 
@@ -193,7 +193,7 @@ function CheckoutPage() {
     if (needsFallback) {
       const fallbackResult = await supabase
         .from("orders")
-        .insert(createOrderPayload(false))
+        .insert(createOrderPayload(false) as never)
         .select()
         .single();
 
@@ -520,4 +520,3 @@ function CheckoutPage() {
     </div>
   );
 }
-

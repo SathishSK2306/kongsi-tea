@@ -64,11 +64,11 @@ function AdminOrdersPage() {
     try {
       const { error } = await supabase
         .from("orders")
-        .update({ order_status: update.order_status, payment_status: update.payment_status })
+        .update({ order_status: update.order_status as never, payment_status: update.payment_status as never })
         .eq("id", orderId);
       if (error) throw error;
       toast.success("Order status updated.");
-      queryClient.invalidateQueries(["admin-order-history"]);
+      queryClient.invalidateQueries({ queryKey: ["admin-order-history"] });
     } catch (err) {
       toast.error("Unable to update order status.");
       console.error(err);

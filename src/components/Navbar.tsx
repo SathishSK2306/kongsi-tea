@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 const links = [
   { to: "/", label: "Home" },
   { to: "/menu", label: "Menu" },
+  { to: "/account", label: "Account" },
 ];
+
 
 export function Navbar() {
   const { count } = useCart();

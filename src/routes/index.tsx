@@ -67,12 +67,8 @@ function Landing() {
                     Explore Menu <ArrowRight className="ml-1 size-4" />
                   </Button>
                 </Link>
-                <Link to="/auth">
-                  <Button size="lg" variant="outline" className="rounded-full border-[rgba(122,74,42,0.2)] bg-[rgba(255,245,235,0.7)] text-foreground hover:bg-[rgba(235,192,160,0.3)]">
-                    Become a Partner
-                  </Button>
-                </Link>
               </div>
+
 
               <div className="mt-10 grid gap-3 sm:grid-cols-3">
                 {[
