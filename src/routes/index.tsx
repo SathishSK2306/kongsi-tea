@@ -36,7 +36,7 @@ function Landing() {
 
   return (
     <div>
-      {/* HERO */}
+      {/* HERO
       <section className="container mx-auto px-4 pt-6 md:pt-10">
         <div className="relative overflow-hidden rounded-[3rem] glass border border-border min-h-[620px] md:min-h-[720px] grid gap-8 md:grid-cols-[1.2fr_0.95fr]">
           <div className="absolute inset-0 bg-hero-gradient" />
@@ -109,10 +109,10 @@ function Landing() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* ABOUT */}
-      <section className="container mx-auto px-4 mt-24 grid md:grid-cols-2 gap-10 items-center">
+      {/* <section className="container mx-auto px-4 mt-24 grid md:grid-cols-2 gap-10 items-center">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -153,7 +153,7 @@ function Landing() {
             <Button className="rounded-full btn-glow">Explore Catalog <ArrowRight className="ml-1 size-4" /></Button>
           </Link>
         </motion.div>
-      </section>
+      </section> */}
 
       {/* CATEGORIES */}
       <section className="container mx-auto px-4 mt-24">

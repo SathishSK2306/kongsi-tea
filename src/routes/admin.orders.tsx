@@ -47,14 +47,23 @@ function AdminOrdersPage() {
     const updates: Record<string, { order_status: string; payment_status: string }> = {};
     orders.forEach((order) => {
       updates[order.id] = {
-        order_status: order.order_status ?? "pending",
+        order_status:
+  order.order_status &&
+  ["pending", "confirmed", "shipped", "delivered"].includes(order.order_status)
+    ? order.order_status
+    : "pending",
         payment_status: order.payment_status ?? "unpaid",
       };
     });
     setOrderStatusUpdates(updates);
   }, [orders]);
 
-  const orderStatusOptions = ["pending", "packed", "delivered"];
+  const orderStatusOptions = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+];
   const paymentStatusOptions = ["paid", "unpaid"];
 
   async function handleSaveOrderUpdate(orderId: string) {
@@ -225,7 +234,11 @@ function AdminOrdersPage() {
                       <td className="px-4 py-4">
                         <div className="space-y-2">
                           <select
-                            value={orderStatusUpdates[order.id]?.order_status ?? order.order_status ?? "pending"}
+                            value={
+                                    orderStatusUpdates[order.id]?.order_status ||
+                                      order.order_status ||
+                                      "pending"
+                                                }
                             onChange={(e) => updateOrderStatusState(order.id, "order_status", e.target.value)}
                             className="w-full rounded-lg border border-border bg-card/50 px-3 py-2 text-sm"
                           >
