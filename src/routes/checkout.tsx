@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useCart } from "@/lib/cart";
-import { useAuth } from "@/lib/auth";
+import { getStoreSession, setStoreSession } from "@/lib/store-session";
 import { supabase } from "@/integrations/supabase/client";
 import { sendOrderEmails } from "@/lib/email-service";
 import { loadRazorpayScript, openRazorpayCheckout, type RazorpayPaymentResponse } from "@/lib/razorpay";
@@ -36,7 +36,7 @@ interface FormErrors {
 
 function CheckoutPage() {
   const { items, total, clear } = useCart();
-  const { user, loading } = useAuth();
+  const [storeSession] = useState(() => getStoreSession());
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -54,33 +54,37 @@ function CheckoutPage() {
   });
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/checkout" } });
-  }, [loading, user, navigate]);
+    if (!storeSession) navigate({ to: "/auth", search: { redirect: "/checkout" } });
+  }, [storeSession, navigate]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!storeSession) return;
+
     supabase
       .from("stores")
-      .select("*")
-      .eq("user_id", user.id)
+      .select("id, store_id, store_name, owner_name, phone, address, email, status")
+      .eq("id", storeSession.id)
+      .eq("status", "active")
       .maybeSingle()
       .then(({ data }) => {
+        const store = data || storeSession;
+
         if (data) {
-          setForm((f) => ({
-            ...f,
-            store_name: data.store_name || "",
-            store_id: data.store_id || "",
-            store_uuid: data.id || "",
-            owner_name: data.owner_name || "",
-            phone: data.phone || "",
-            email: data.email || user.email || "",
-            delivery_address: data.address || "",
-          }));
-        } else {
-          setForm((f) => ({ ...f, email: user.email || "" }));
+          setStoreSession(data);
         }
+
+        setForm((f) => ({
+          ...f,
+          store_name: store.store_name || "",
+          store_id: store.store_id || "",
+          store_uuid: store.id || "",
+          owner_name: store.owner_name || "",
+          phone: store.phone || "",
+          email: store.email || "",
+          delivery_address: store.address || "",
+        }));
       });
-  }, [user]);
+  }, [storeSession]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -116,7 +120,7 @@ function CheckoutPage() {
     );
   }
 
-  if (!user) return null;
+  if (!storeSession) return null;
 
   if (orderPlaced) {
     return (
@@ -154,7 +158,7 @@ function CheckoutPage() {
 
     const createOrderPayload = (includePaymentMetadata: boolean) => ({
       order_id: newOrderId,
-      user_id: user!.id,
+      user_id: null,
       store_name: form.store_name,
       store_id: form.store_uuid || null,
       customer_name: form.owner_name,
@@ -303,13 +307,13 @@ function CheckoutPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 pb-12">
+    <div className="container mx-auto px-4 pb-12 pt-4 sm:pt-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-serif text-4xl md:text-5xl mb-2">Checkout</h1>
         <p className="text-muted-foreground">Complete your order details</p>
       </motion.div>
 
-      <div className="mt-8 grid lg:grid-cols-3 gap-6">
+      <div className="mt-6 sm:mt-8 grid lg:grid-cols-3 gap-5 sm:gap-6">
         {/* Form */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -318,7 +322,7 @@ function CheckoutPage() {
           className="lg:col-span-2 space-y-6"
         >
           {/* Store Information */}
-          <div className="glass border border-border rounded-2xl p-6">
+          <div className="glass border border-border rounded-2xl p-4 sm:p-6">
             <h2 className="font-serif text-2xl mb-4">Store Information</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -356,7 +360,7 @@ function CheckoutPage() {
           </div>
 
           {/* Owner Information */}
-          <div className="glass border border-border rounded-2xl p-6">
+          <div className="glass border border-border rounded-2xl p-4 sm:p-6">
             <h2 className="font-serif text-2xl mb-4">Owner Information</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -420,7 +424,7 @@ function CheckoutPage() {
           </div>
 
           {/* Delivery Details */}
-          <div className="glass border border-border rounded-2xl p-6">
+          <div className="glass border border-border rounded-2xl p-4 sm:p-6">
             <h2 className="font-serif text-2xl mb-4">Delivery Address</h2>
             <div className="space-y-2">
               <Label className="text-sm font-medium">
@@ -463,7 +467,7 @@ function CheckoutPage() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
-          className="glass border border-border rounded-2xl p-6 h-fit lg:sticky lg:top-24"
+          className="glass border border-border rounded-2xl p-4 sm:p-6 h-fit lg:sticky lg:top-24"
         >
           <h2 className="font-serif text-2xl mb-4">Order Summary</h2>
 

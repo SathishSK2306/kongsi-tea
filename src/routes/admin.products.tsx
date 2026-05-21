@@ -34,7 +34,7 @@ export const Route = createFileRoute("/admin/products")({
 });
 
 function AdminProductsPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyProduct);
@@ -78,14 +78,14 @@ function AdminProductsPage() {
   }
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!authLoading && !isAdmin) {
       navigate({ to: "/admin/login" });
     }
-  }, [isAdmin, navigate]);
+  }, [authLoading, isAdmin, navigate]);
 
   const { data: products, isLoading, error } = useQuery({
     queryKey: ["admin-products"],
-    enabled: isAdmin,
+    enabled: !authLoading && isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")

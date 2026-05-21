@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { formatINR } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, CalendarDays, CreditCard, FileText, PackageCheck, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrdersPage,
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/admin/orders")({
 });
 
 function AdminOrdersPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
@@ -22,14 +22,14 @@ function AdminOrdersPage() {
   const [orderStatusUpdates, setOrderStatusUpdates] = useState<Record<string, { order_status: string; payment_status: string }>>({});
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!authLoading && !isAdmin) {
       navigate({ to: "/admin/login" });
     }
-  }, [isAdmin, navigate]);
+  }, [authLoading, isAdmin, navigate]);
 
   const { data: orders, error, isLoading } = useQuery({
     queryKey: ["admin-order-history"],
-    enabled: isAdmin,
+    enabled: !authLoading && isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
@@ -173,31 +173,70 @@ function AdminOrdersPage() {
     }));
   }
 
-  if (!isAdmin) return null;
+  if (authLoading || !isAdmin) return null;
+
+  const totalRevenue =
+    orders?.reduce((sum, order) => sum + Number(order.total_amount || 0), 0) ?? 0;
+  const pendingOrders =
+    orders?.filter((order) => (order.order_status || "pending") === "pending").length ?? 0;
+  const paidOrders =
+    orders?.filter((order) => (order.payment_status || "unpaid") === "paid").length ?? 0;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background to-card/20 p-3 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <p className="text-sm text-muted-foreground">Admin / Orders</p>
-            <h1 className="font-serif text-4xl">Order History</h1>
-            <p className="text-sm text-muted-foreground">Track all orders placed by stores with status and payment details.</p>
+            <h1 className="font-serif text-4xl md:text-5xl">Order History</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Track store orders and update delivery/payment status.</p>
           </div>
-          <div className="flex gap-3">
-            <Link to="/admin/dashboard">
-              <Button variant="secondary" className="gap-2">
-                <ArrowLeft className="size-4" /> Dashboard
-              </Button>
-            </Link>
+          <Link to="/admin/dashboard">
+            <Button variant="secondary" className="gap-2 rounded-full">
+              <ArrowLeft className="size-4" /> Dashboard
+            </Button>
+          </Link>
+        </div>
+
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="glass border border-border/60 rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Orders</p>
+                <p className="mt-2 font-serif text-3xl">{isLoading ? "..." : orders?.length ?? 0}</p>
+              </div>
+              <PackageCheck className="size-5 text-primary" />
+            </div>
+          </div>
+          <div className="glass border border-border/60 rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Revenue</p>
+                <p className="mt-2 font-serif text-2xl">{isLoading ? "..." : formatINR(totalRevenue)}</p>
+              </div>
+              <CalendarDays className="size-5 text-primary" />
+            </div>
+          </div>
+          <div className="glass border border-border/60 rounded-2xl p-4">
+            <p className="text-sm text-muted-foreground">Pending</p>
+            <p className="mt-2 font-serif text-3xl">{isLoading ? "..." : pendingOrders}</p>
+          </div>
+          <div className="glass border border-border/60 rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Paid Orders</p>
+                <p className="mt-2 font-serif text-3xl">{isLoading ? "..." : paidOrders}</p>
+              </div>
+              <CreditCard className="size-5 text-primary" />
+            </div>
           </div>
         </div>
 
-        <div className="glass border border-border/60 rounded-3xl p-6">
+        <div className="glass border border-border/60 rounded-3xl overflow-hidden">
           {isLoading ? (
             <div className="py-16 text-center text-muted-foreground">Loading orders...</div>
           ) : error ? (
-            <div className="rounded-3xl border border-red-300/70 bg-red-50 p-8 text-red-700">
+            <div className="m-4 rounded-3xl border border-red-300/70 bg-red-50 p-8 text-red-700">
               <p className="text-lg font-semibold">Unable to load order history</p>
               <p className="mt-2 text-sm">{String(error)}</p>
             </div>
@@ -205,33 +244,38 @@ function AdminOrdersPage() {
             <div className="py-16 text-center text-muted-foreground">No order history available yet.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border text-left">
-                <thead className="bg-muted text-sm uppercase tracking-[0.12em] text-muted-foreground">
+              <table className="min-w-[1080px] w-full text-left">
+                <thead className="bg-muted/70 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">Order</th>
-                    <th className="px-4 py-3">Store</th>
-                    <th className="px-4 py-3">Customer</th>
-                    <th className="px-4 py-3">Amount</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Payment</th>
-                    <th className="px-4 py-3">Placed</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+                    <th className="px-5 py-4">Order</th>
+                    <th className="px-5 py-4">Store</th>
+                    <th className="px-5 py-4">Customer</th>
+                    <th className="px-5 py-4">Amount</th>
+                    <th className="px-5 py-4">Order Status</th>
+                    <th className="px-5 py-4">Payment</th>
+                    <th className="px-5 py-4">Placed</th>
+                    <th className="px-5 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border bg-card text-sm">
+                <tbody className="divide-y divide-border/60 bg-card/40 text-sm">
                   {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-secondary/10 transition-colors">
-                      <td className="px-4 py-4 font-semibold">{order.order_id}</td>
-                      <td className="px-4 py-4">
+                    <tr key={order.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-5 py-5 align-top">
+                        <div className="font-semibold">{order.order_id}</div>
+                        <div className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                          {order.order_status || "pending"}
+                        </div>
+                      </td>
+                      <td className="px-5 py-5 align-top">
                         <div className="font-medium">{order.store?.store_name ?? order.store_id}</div>
-                        <div className="text-muted-foreground text-xs">{order.store?.store_id ?? "Store ID unavailable"}</div>
+                        <div className="mt-1 text-muted-foreground text-xs">{order.store?.store_id ?? "Store ID unavailable"}</div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-5 py-5 align-top">
                         <div>{order.customer_name}</div>
-                        <div className="text-sm text-muted-foreground">{order.phone}</div>
+                        <div className="mt-1 text-sm text-muted-foreground">{order.phone}</div>
                       </td>
-                      <td className="px-4 py-4">{formatINR(Number(order.total_amount))}</td>
-                      <td className="px-4 py-4">
+                      <td className="px-5 py-5 align-top font-semibold">{formatINR(Number(order.total_amount))}</td>
+                      <td className="px-5 py-5 align-top">
                         <div className="space-y-2">
                           <select
                             value={
@@ -240,7 +284,7 @@ function AdminOrdersPage() {
                                       "pending"
                                                 }
                             onChange={(e) => updateOrderStatusState(order.id, "order_status", e.target.value)}
-                            className="w-full rounded-lg border border-border bg-card/50 px-3 py-2 text-sm"
+                            className="w-full rounded-xl border border-border bg-background/80 px-3 py-2 text-sm capitalize"
                           >
                             {orderStatusOptions.map((status) => (
                               <option key={status} value={status}>
@@ -250,12 +294,12 @@ function AdminOrdersPage() {
                           </select>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-5 py-5 align-top">
                         <div className="space-y-2">
                           <select
                             value={orderStatusUpdates[order.id]?.payment_status ?? order.payment_status ?? "unpaid"}
                             onChange={(e) => updateOrderStatusState(order.id, "payment_status", e.target.value)}
-                            className="w-full rounded-lg border border-border bg-card/50 px-3 py-2 text-sm"
+                            className="w-full rounded-xl border border-border bg-background/80 px-3 py-2 text-sm capitalize"
                           >
                             {paymentStatusOptions.map((status) => (
                               <option key={status} value={status}>
@@ -273,19 +317,23 @@ function AdminOrdersPage() {
                                 orderStatusUpdates[order.id]?.payment_status === order.payment_status)
                             }
                             onClick={() => handleSaveOrderUpdate(order.id)}
-                            className="rounded-full"
+                            className="rounded-full px-4"
                           >
                             {savingOrderId === order.id ? "Saving..." : "Save"}
                           </Button>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-muted-foreground">{new Date(order.created_at).toLocaleString()}</td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-5 py-5 align-top text-muted-foreground">
+                        <div>{new Date(order.created_at).toLocaleDateString()}</div>
+                        <div className="text-xs">{new Date(order.created_at).toLocaleTimeString()}</div>
+                      </td>
+                      <td className="px-5 py-5 align-top text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="icon"
+                            className="rounded-full"
                             title="Download PDF"
                             onClick={() => handleDownloadPDF(order.order_id)}
                           >
@@ -295,6 +343,7 @@ function AdminOrdersPage() {
                             type="button"
                             variant="destructive"
                             size="icon"
+                            className="rounded-full"
                             title="Delete Order"
                             disabled={deletingOrderId === order.id}
                             onClick={() => handleDeleteOrder(order.id, order.order_id)}

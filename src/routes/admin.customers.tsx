@@ -6,9 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Users, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit2, X } from "lucide-react";
 import { toast } from "sonner";
-import { genId } from "@/lib/format";
+import { generateStoreId } from "@/lib/format";
 
 const emptyStore = {
   store_name: "",
@@ -25,21 +25,22 @@ export const Route = createFileRoute("/admin/customers")({
 });
 
 function AdminCustomersPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyStore);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!authLoading && !isAdmin) {
       navigate({ to: "/admin/login" });
     }
-  }, [isAdmin, navigate]);
+  }, [authLoading, isAdmin, navigate]);
 
   const { data: stores, isLoading, error } = useQuery({
     queryKey: ["admin-customers"],
-    enabled: isAdmin,
+    enabled: !authLoading && isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
@@ -49,7 +50,23 @@ function AdminCustomersPage() {
     },
   });
 
-  async function handleAddStore(e: React.FormEvent) {
+  async function createUniqueStoreId() {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const storeId = generateStoreId();
+      const { data, error } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("store_id", storeId)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return storeId;
+    }
+
+    throw new Error("Unable to generate a unique store ID.");
+  }
+
+  async function handleStoreSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
 
@@ -60,27 +77,65 @@ function AdminCustomersPage() {
     }
 
     try {
-      const { error } = await supabase.from("stores").insert({
-        store_id: genId("ST-"),
-        user_id: user?.id,
-        store_name: form.store_name.trim(),
-        owner_name: form.owner_name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
-        status: form.status,
-      });
+      if (editingId) {
+        const { error } = await supabase
+          .from("stores")
+          .update({
+            store_name: form.store_name.trim(),
+            owner_name: form.owner_name.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            address: form.address.trim(),
+            status: form.status,
+          })
+          .eq("id", editingId);
 
-      if (error) throw error;
-      toast.success("Store added successfully.");
+        if (error) throw error;
+        toast.success("Store updated successfully.");
+      } else {
+        const storeId = await createUniqueStoreId();
+
+        const { error } = await supabase.from("stores").insert({
+          store_id: storeId,
+          user_id: user?.id,
+          store_name: form.store_name.trim(),
+          owner_name: form.owner_name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          address: form.address.trim(),
+          status: form.status,
+        });
+
+        if (error) throw error;
+        toast.success("Store added successfully.");
+      }
+
       setForm(emptyStore);
+      setEditingId(null);
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
     } catch (err) {
-      toast.error("Unable to add store.");
+      toast.error(editingId ? "Unable to update store." : "Unable to add store.");
       console.error(err);
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleEditStore(store: NonNullable<typeof stores>[number]) {
+    setEditingId(store.id);
+    setForm({
+      store_name: store.store_name || "",
+      owner_name: store.owner_name || "",
+      email: store.email || "",
+      phone: store.phone || "",
+      address: store.address || "",
+      status: store.status || "active",
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(emptyStore);
   }
 
   async function handleDelete(id: string) {
@@ -90,6 +145,7 @@ function AdminCustomersPage() {
       const { error } = await supabase.from("stores").delete().eq("id", id);
       if (error) throw error;
       toast.success("Store deleted.");
+      if (editingId === id) cancelEdit();
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
     } catch (err) {
       toast.error("Unable to delete store.");
@@ -114,18 +170,20 @@ function AdminCustomersPage() {
           </Link>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-          <div className="glass border border-border/60 rounded-3xl p-6">
+        <div className="grid items-start gap-6 xl:grid-cols-[420px_1fr]">
+          <div className="glass border border-border/60 rounded-3xl p-6 h-fit">
             <div className="mb-6 flex items-center gap-3">
               <div className="rounded-2xl bg-muted p-3 text-primary-foreground">
-                <Plus className="size-5" />
+                {editingId ? <Edit2 className="size-5" /> : <Plus className="size-5" />}
               </div>
               <div>
-                <h2 className="text-2xl font-semibold">Add new store</h2>
-                <p className="text-sm text-muted-foreground">Manually create partner store records for onboarding.</p>
+                <h2 className="text-2xl font-semibold">{editingId ? "Edit store" : "Add new store"}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {editingId ? "Update partner store details and access status." : "Manually create partner store records for onboarding."}
+                </p>
               </div>
             </div>
-            <form onSubmit={handleAddStore} className="space-y-4">
+            <form onSubmit={handleStoreSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="store_name">Store name</Label>
                 <Input
@@ -176,10 +234,29 @@ function AdminCustomersPage() {
                   placeholder="123 Market Street, Bangalore"
                 />
               </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <select
+                  id="status"
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  className="w-full rounded-lg border border-border bg-card/50 px-3 py-2 text-sm"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
               <div className="flex items-center justify-between gap-3">
-                <Button type="submit" disabled={saving} className="rounded-full">
-                  Add store
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button type="submit" disabled={saving} className="rounded-full">
+                    {editingId ? "Update store" : "Add store"}
+                  </Button>
+                  {editingId && (
+                    <Button type="button" variant="ghost" onClick={cancelEdit} className="rounded-full gap-1">
+                      <X className="size-4" /> Cancel
+                    </Button>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">Status: {form.status}</p>
               </div>
             </form>
@@ -213,8 +290,18 @@ function AdminCustomersPage() {
                         <p className="text-sm text-muted-foreground">{store.store_id}</p>
                         <h3 className="text-xl font-semibold">{store.store_name}</h3>
                         <p className="text-sm text-muted-foreground">Owner: {store.owner_name}</p>
+                        <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                          store.status === "active"
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-red-500/10 text-red-600"
+                        }`}>
+                          {store.status === "active" ? "Active" : "Inactive"}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button type="button" variant="secondary" onClick={() => handleEditStore(store)} className="gap-2">
+                          <Edit2 className="size-4" /> Edit
+                        </Button>
                         <Button type="button" variant="destructive" onClick={() => handleDelete(store.id)} className="gap-2">
                           <Trash2 className="size-4" /> Delete
                         </Button>

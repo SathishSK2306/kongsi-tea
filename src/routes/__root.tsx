@@ -8,10 +8,17 @@ import {
   Scripts,
   Link,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider, useAuth } from "@/lib/auth";
+import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
+import {
+  clearStoreSession,
+  getStoreSession,
+  setStoreSession as saveStoreSession,
+  type StoreSession,
+} from "@/lib/store-session";
+import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -137,17 +144,43 @@ function AppShell() {
 }
 
 function AuthedShell() {
-  const { user, loading } = useAuth();
+  const [storeSession, setStoreSession] = useState<StoreSession | null>(() => getStoreSession());
+  const [checkingStore, setCheckingStore] = useState(true);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.navigate({ to: "/auth", search: { redirect: path } });
-    }
-  }, [loading, user, path, router]);
+    const session = getStoreSession();
+    setStoreSession(session);
 
-  if (loading || !user) {
+    if (!session) {
+      setCheckingStore(false);
+      router.navigate({ to: "/auth", search: { redirect: path } });
+      return;
+    }
+
+    setCheckingStore(true);
+    supabase
+      .from("stores")
+      .select("id, store_id, store_name, owner_name, email, phone, address, status")
+      .eq("id", session.id)
+      .eq("status", "active")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) {
+          clearStoreSession();
+          setStoreSession(null);
+          router.navigate({ to: "/auth", search: { redirect: path } });
+          return;
+        }
+
+        saveStoreSession(data);
+        setStoreSession(data);
+      })
+      .finally(() => setCheckingStore(false));
+  }, [path, router]);
+
+  if (checkingStore || !storeSession) {
     return (
       <div className="min-h-[60vh] grid place-items-center text-sm text-muted-foreground">
         Loading…

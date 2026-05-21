@@ -1,9 +1,9 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Menu, X, User as UserIcon, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
-import { useAuth } from "@/lib/auth";
+import { clearStoreSession, getStoreSession } from "@/lib/store-session";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
@@ -16,7 +16,8 @@ const links = [
 
 export function Navbar() {
   const { count } = useCart();
-  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const storeSession = getStoreSession();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -27,6 +28,12 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  function handleStoreSignOut() {
+    clearStoreSession();
+    setOpen(false);
+    navigate({ to: "/auth" });
+  }
 
   return (
     <header className={`fixed inset-x-0 top-0 z-50 glass-strong transition-all duration-300 ${scrolled ? "py-3 shadow-md" : "py-4 shadow-sm"}`}>
@@ -77,12 +84,12 @@ export function Navbar() {
             </Button>
           </Link>
 
-          {user ? (
+          {storeSession ? (
             <Button
               variant="ghost"
               size="icon"
               className="hidden md:inline-flex"
-              onClick={signOut}
+              onClick={handleStoreSignOut}
               aria-label="Sign out"
               title="Sign out"
             >
@@ -128,12 +135,9 @@ export function Navbar() {
                   {l.label}
                 </Link>
               ))}
-              {user ? (
+              {storeSession ? (
                 <button
-                  onClick={() => {
-                    setOpen(false);
-                    signOut();
-                  }}
+                  onClick={handleStoreSignOut}
                   className="px-3 py-3 rounded-lg hover:bg-muted text-sm text-left"
                 >
                   Sign out
