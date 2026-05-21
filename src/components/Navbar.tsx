@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Menu, X, Coffee, User as UserIcon, LogOut } from "lucide-react";
+import { ShoppingCart, Menu, X, User as UserIcon, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/logo.png";
 
 const links = [
   { to: "/", label: "Home" },
@@ -30,11 +31,15 @@ export function Navbar() {
   return (
     <header className={`fixed inset-x-0 top-0 z-50 glass-strong transition-all duration-300 ${scrolled ? "py-3 shadow-md" : "py-4 shadow-sm"}`}>
       <div className="container mx-auto px-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group">
-          <span className="grid place-items-center size-9 rounded-full bg-amber-gradient shadow-glow-var group-hover:scale-110 transition-transform">
-            <Coffee className="size-5 text-primary-foreground" />
-          </span>
-          <span className="font-serif text-xl tracking-tight">
+        <Link to="/" className="flex items-center group">
+         <div className="group-hover:scale-110 transition-transform">
+  <img
+    src={logo}
+    alt="Kongsi Logo"
+    className="h-12 w-12 object-contain rounded-full"
+  />
+</div>
+          <span className="font-serif text-2xl tracking-tight">
             <span className="text-gradient-gold">Kongsi</span>
           </span>
         </Link>

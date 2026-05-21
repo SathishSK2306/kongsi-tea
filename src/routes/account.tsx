@@ -41,11 +41,11 @@ function AccountPage() {
     enabled: !!user,
     queryKey: ["my-store", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+     const { data, error } = await supabase
+  .from("stores")
+  .select("*")
+  .eq("email", user!.email)
+  .maybeSingle();
       if (error) throw error;
       return data as StoreRow | null;
     },
@@ -176,22 +176,37 @@ function AccountPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
-          <Link to="/menu">
-            <Button variant="outline" className="w-full rounded-full">
-              <Package className="size-4 mr-1.5" /> Browse Menu
-            </Button>
-          </Link>
-          <Button
-            variant="outline"
-            className="w-full rounded-full"
-            onClick={async () => {
-              await signOut();
-              navigate({ to: "/auth", search: { redirect: "/" } });
-            }}
-          >
-            <LogOut className="size-4 mr-1.5" /> Sign out
-          </Button>
-        </div>
+  <Link to="/menu">
+    <Button variant="outline" className="w-full rounded-full">
+      <Package className="size-4 mr-1.5" />
+      Browse Menu
+    </Button>
+  </Link>
+
+  <Button
+    variant="outline"
+    className="w-full rounded-full"
+    onClick={async () => {
+      await signOut();
+      navigate({ to: "/auth", search: { redirect: "/" } });
+    }}
+  >
+    <LogOut className="size-4 mr-1.5" />
+    Sign out
+  </Button>
+
+  <div className="col-span-2 flex justify-center">
+    <Link to="/orders" className="w-full sm:w-auto">
+      <Button
+        variant="outline"
+        className="w-full sm:w-auto rounded-full px-8"
+      >
+        <Package className="size-4 mr-1.5" />
+        My Orders
+      </Button>
+    </Link>
+  </div>
+</div>
       </motion.div>
     </div>
   );
