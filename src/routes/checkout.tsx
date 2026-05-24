@@ -61,16 +61,12 @@ function CheckoutPage() {
     if (!storeSession) return;
 
     supabase
-      .from("stores")
-      .select("id, store_id, store_name, owner_name, phone, address, email, status")
-      .eq("id", storeSession.id)
-      .eq("status", "active")
-      .maybeSingle()
+      .rpc("get_store_session", { p_store_uuid: storeSession.id })
       .then(({ data }) => {
-        const store = data || storeSession;
+        const store = data?.[0] || storeSession;
 
-        if (data) {
-          setStoreSession(data);
+        if (data?.[0]) {
+          setStoreSession(data[0]);
         }
 
         setForm((f) => ({

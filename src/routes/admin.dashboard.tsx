@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
-import { BarChart3, CalendarDays, LogOut, ShoppingCart, TrendingUp } from "lucide-react";
+import { AlertTriangle, BarChart3, CalendarDays, LogOut, ShoppingCart, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -31,6 +31,17 @@ type AdminOrder = {
   customer_name: string;
   total_amount: number;
   order_status: string;
+  created_at: string;
+};
+
+type DamageReport = {
+  id: string;
+  store_name: string;
+  store_id: string;
+  customer_name: string;
+  contact: string;
+  order_id: string;
+  status: string;
   created_at: string;
 };
 
@@ -48,6 +59,7 @@ function AdminDashboard() {
   const { user, signOut, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,14 +77,22 @@ function AdminDashboard() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, order_id, customer_name, total_amount, order_status, created_at")
-        .order("created_at", { ascending: false });
+      const [ordersResult, reportsResult] = await Promise.all([
+        supabase
+          .from("orders")
+          .select("id, order_id, customer_name, total_amount, order_status, created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("damage_reports")
+          .select("id, store_name, store_id, customer_name, contact, order_id, status, created_at")
+          .order("created_at", { ascending: false }),
+      ]);
 
-      if (error) throw error;
+      if (ordersResult.error) throw ordersResult.error;
+      if (reportsResult.error) throw reportsResult.error;
 
-      setOrders((data || []) as AdminOrder[]);
+      setOrders((ordersResult.data || []) as AdminOrder[]);
+      setDamageReports((reportsResult.data || []) as DamageReport[]);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load dashboard analytics");
@@ -99,7 +119,10 @@ function AdminDashboard() {
     });
 
     const currentMonthOrders = orders.filter((order) => monthKey(new Date(order.created_at)) === currentMonth);
-
+    const todayReports = damageReports.filter((report) => {
+      const created = new Date(report.created_at).getTime();
+      return created >= todayStart && created < tomorrowStart;
+    });
     const monthlyData = Array.from({ length: 6 }, (_, index) => {
       const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
       const key = monthKey(date);
@@ -127,8 +150,9 @@ function AdminDashboard() {
       monthlyRevenue: currentMonthOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0),
       monthlyData,
       statusData,
+      todayReports,
     };
-  }, [orders]);
+  }, [orders, damageReports]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-card/20 p-3 sm:p-4 md:p-8">
@@ -148,6 +172,15 @@ function AdminDashboard() {
             <div className="rounded-2xl border border-border/60 bg-card p-4">
               <p className="text-sm text-muted-foreground">Today Revenue</p>
               <p className="mt-2 text-2xl font-semibold">{loading ? "..." : formatINR(analytics.todayRevenue)}</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Today Complaints</p>
+                  <p className="mt-2 text-3xl font-semibold">{loading ? "..." : analytics.todayReports.length}</p>
+                </div>
+                <AlertTriangle className="size-5 text-primary" />
+              </div>
             </div>
           </div>
 

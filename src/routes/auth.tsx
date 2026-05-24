@@ -12,10 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import {
-  Coffee,
   Mail,
   Lock,
   ArrowRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -39,7 +40,8 @@ function AuthPage() {
 
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
-  const [storeId, setStoreId] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
@@ -79,36 +81,33 @@ function AuthPage() {
   try {
     const cleanEmail =
       email.trim().toLowerCase();
-
-    const cleanStoreId =
-      storeId.trim().toUpperCase();
+    const cleanPassword = password.trim();
 
     const { data, error } =
-      await supabase
-        .from("stores")
-        .select("id, store_id, store_name, owner_name, email, phone, address, status")
-        .ilike("email", cleanEmail)
-        .ilike("store_id", cleanStoreId)
-        .eq("status", "active")
-        .maybeSingle();
+      await supabase.rpc("verify_store_login", {
+        p_email: cleanEmail,
+        p_password: cleanPassword,
+      });
 
     if (error) {
       throw error;
     }
 
-    if (!data) {
+    const store = Array.isArray(data) ? data[0] : data;
+
+    if (!store) {
       toast.error(
-        "Invalid Store ID or Email"
+        "Invalid store email or password"
       );
 
       setBusy(false);
       return;
     }
 
-    setStoreSession(data);
+    setStoreSession(store);
 
     toast.success(
-      `Welcome ${data.store_name}`
+      `Welcome ${store.store_name}`
     );
 
     navigate({
@@ -128,25 +127,28 @@ function AuthPage() {
 }
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden overflow-y-auto flex items-start sm:items-center justify-center px-3 py-4 sm:px-4 sm:py-8 md:py-12">
+    <div className="relative min-h-dvh overflow-hidden bg-[#071b2f] px-3 py-4 text-white sm:px-5 sm:py-8 md:grid md:place-items-center">
       {/* Background */}
       <div
         aria-hidden
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(1200px 600px at 20% 10%, rgba(231,173,115,0.35), transparent 60%), radial-gradient(900px 600px at 90% 90%, rgba(122,74,42,0.28), transparent 60%), linear-gradient(180deg, #2a1a10 0%, #1a110a 100%)",
+            "radial-gradient(circle at 16% 0%, rgba(86,162,201,0.26), transparent 34%), radial-gradient(circle at 92% 18%, rgba(75,174,214,0.2), transparent 30%), linear-gradient(135deg, #0a2038 0%, #07172a 46%, #03101f 100%)",
         }}
       />
+      <div aria-hidden className="absolute -left-24 top-0 h-64 w-64 rounded-full border-[42px] border-cyan-300/5 md:h-96 md:w-96" />
+      <div aria-hidden className="absolute -bottom-32 left-1/3 h-72 w-72 rounded-full border-[44px] border-cyan-300/5 md:h-[30rem] md:w-[30rem]" />
+      <div aria-hidden className="absolute right-0 top-24 h-[34rem] w-[34rem] rounded-full bg-cyan-400/5 blur-3xl" />
 
       {/* Floating Coffee Beans */}
       {Array.from({
-        length: typeof window !== "undefined" && window.innerWidth < 640 ? 8 : 14,
+        length: typeof window !== "undefined" && window.innerWidth < 640 ? 7 : 13,
       }).map((_, i) => {
         const left = (i * 37) % 100;
         const delay = (i % 7) * 0.6;
-        const dur = 8 + (i % 5) * 1.4;
-        const size = 10 + ((i * 3) % 14);
+        const dur = 9 + (i % 5) * 1.3;
+        const size = 10 + ((i * 5) % 18);
 
         return (
           <motion.span
@@ -158,9 +160,13 @@ function AuthPage() {
               top: "110%",
               width: size,
               height: size * 1.4,
-              background: "radial-gradient(ellipse at center, #6b3a1f 0%, #3a1d0e 80%)",
-              boxShadow: "inset 0 0 0 1px rgba(255,220,180,0.15)",
-              opacity: 0.55,
+              background:
+                i % 3 === 0
+                  ? "radial-gradient(ellipse at center, #12d7ff 0%, #1b7db6 68%, #07345a 100%)"
+                  : "radial-gradient(ellipse at center, #9a5a35 0%, #4c2414 72%, #1e0c07 100%)",
+              boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.18), 0 0 22px rgba(20,203,255,0.16)",
+              opacity: 0.78,
+              transform: "rotate(-28deg)",
             }}
             animate={{
               y: ["0%", "-130vh"],
@@ -188,72 +194,72 @@ function AuthPage() {
           transform: `perspective(900px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
           transformStyle: "preserve-3d",
         }}
-        className="relative w-full max-w-[min(100%,28rem)] sm:max-w-lg rounded-[22px] sm:rounded-[28px] border border-white/15 p-4 sm:p-6 md:p-8 shadow-2xl mx-auto"
+        className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-[28px] border border-cyan-200/15 bg-white/[0.04] shadow-2xl shadow-cyan-950/50 backdrop-blur-2xl md:min-h-[620px] md:grid-cols-[1.12fr_0.88fr]"
       >
-        {/* Glass Background */}
-        <div
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-cyan-300/12 via-transparent to-cyan-950/30" />
+        <div aria-hidden className="absolute -left-20 top-20 h-[34rem] w-[34rem] rounded-full bg-[#06182b] shadow-[0_0_0_1px_rgba(125,236,255,0.25),0_0_60px_rgba(26,202,255,0.2)]" />
+        <motion.div
           aria-hidden
-          className="absolute inset-0 rounded-[28px]"
-          style={{
-            background: "linear-gradient(160deg, rgba(255,245,235,0.16) 0%, rgba(255,245,235,0.04) 100%)",
-            backdropFilter: "blur(22px)",
-            WebkitBackdropFilter: "blur(22px)",
-          }}
+          className="absolute left-[-8%] top-[14%] h-[105%] w-[72%] rounded-[50%] border-r border-cyan-200/30"
+          animate={{ x: [0, 10, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="relative" style={{ transform: "translateZ(40px)" }}>
-          {/* Coffee Animation */}
-          <div className="relative mx-auto w-fit mb-3 sm:mb-4">
-            <div className="relative flex flex-col items-center">
-              {/* Steam */}
-              <div className="flex gap-1.5 mb-1 h-4 sm:h-6">
-                {[0, 1, 2].map((i) => (
-                  <motion.span
-                    key={i}
-                    className="block w-1 rounded-full"
-                    style={{
-                      background: "linear-gradient(to top, rgba(255,245,235,0) 0%, rgba(255,245,235,0.55) 60%, rgba(255,245,235,0) 100%)",
-                      height: 22,
-                    }}
-                    animate={{
-                      y: [-2, -10, -2],
-                      opacity: [0.2, 0.7, 0.2],
-                      scaleY: [0.8, 1.2, 0.8],
-                    }}
-                    transition={{
-                      duration: 2.4,
-                      delay: i * 0.3,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Coffee Cup */}
-              <motion.span
-                className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shadow-glow-var"
-                style={{ background: "linear-gradient(135deg, #c98a5a 0%, #7a4a2a 100%)" }}
-                animate={{ y: [0, -4, 0] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Coffee className="w-6 h-6 sm:w-7 sm:h-7 text-[#fff5eb]" />
-              </motion.span>
+        <div className="relative flex min-h-[260px] flex-col justify-center p-6 sm:p-8 md:min-h-[620px] md:p-12">
+          <div>
+            <div className="grid size-12 place-items-center rounded-full border border-cyan-100/70 text-xs font-semibold text-cyan-50">
+              K
             </div>
+            <h1 className="mt-12 max-w-sm text-4xl font-light tracking-[0.2em] text-cyan-50 sm:text-5xl md:mt-16">
+              KONGSI
+            </h1>
+            <p className="mt-4 max-w-xs text-sm leading-6 text-cyan-50/70">
+              Partner access for coffee, tea, packaging and cafe supply orders.
+            </p>
           </div>
 
-          {/* Heading */}
-          <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl text-center text-[#fff5eb] leading-tight">
-            Welcome to <span className="text-gradient-gold">Kongsi</span>
-          </h1>
+          <div className="relative mt-10 h-28 overflow-hidden rounded-[24px] border border-cyan-100/15 bg-cyan-50/5 shadow-2xl shadow-cyan-950/40 sm:h-36 md:h-48">
+            <motion.div
+              aria-hidden
+              className="absolute -left-20 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full bg-cyan-300/20 blur-2xl"
+              animate={{ x: [0, 120, 0], opacity: [0.45, 0.75, 0.45] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              aria-hidden
+              className="absolute -inset-y-20 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent blur-sm"
+              animate={{ x: ["0%", "430%"] }}
+              transition={{ duration: 4.8, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
+            />
+            <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(103,232,249,0.18),transparent_44%),linear-gradient(180deg,rgba(255,255,255,0.08),transparent_35%,rgba(0,0,0,0.16))]" />
+            {Array.from({ length: 12 }).map((_, i) => (
+              <motion.span
+                key={i}
+                aria-hidden
+                className="absolute size-1 rounded-full bg-cyan-100/70 shadow-[0_0_14px_rgba(103,232,249,0.9)]"
+                style={{
+                  left: `${8 + ((i * 19) % 84)}%`,
+                  top: `${12 + ((i * 23) % 76)}%`,
+                }}
+                animate={{ y: [0, -18, 0], opacity: [0.15, 0.85, 0.15], scale: [0.7, 1.4, 0.7] }}
+                transition={{ duration: 3.5 + (i % 5) * 0.5, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
+              />
+            ))}
+            <div className="absolute inset-x-5 top-1/2 h-px bg-gradient-to-r from-transparent via-cyan-100/45 to-transparent" />
+          </div>
+        </div>
 
-          <p className="text-center text-xs sm:text-sm mt-1.5 text-[rgba(255,245,235,0.7)]">
-            Sign in using your unique partner store credentials
+        <div className="relative flex items-center p-5 sm:p-8 md:p-10" style={{ transform: "translateZ(40px)" }}>
+          <div className="w-full rounded-[24px] border border-cyan-100/15 bg-[#071b2f]/55 p-5 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl sm:p-7">
+          <h2 className="font-serif text-3xl text-cyan-50 sm:text-4xl">
+            Customer Login
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-cyan-50/65">
+            Sign in using your partner store email and password.
           </p>
-
           {/* Form */}
           <form onSubmit={doSignin} className="space-y-3.5 sm:space-y-4 mt-5 sm:mt-7">
-            {/* Email */}
+            {/* Store Email */}
             <div className="space-y-1.5">
               <Label className="text-[rgba(255,245,235,0.85)]">Store Email</Label>
               <div className="relative">
@@ -264,24 +270,33 @@ function AuthPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="store@example.com"
-                  className="pl-9 bg-white/10 border-white/20 text-[#fff5eb] placeholder:text-[rgba(255,245,235,0.4)]"
+                  className="pl-9 bg-white/10 border-cyan-100/20 text-cyan-50 placeholder:text-cyan-50/35"
                 />
               </div>
             </div>
 
-            {/* Unique Store ID Input */}
+            {/* Password Input */}
             <div className="space-y-1.5">
-              <Label className="text-[rgba(255,245,235,0.85)]">Store ID</Label>
+              <Label className="text-[rgba(255,245,235,0.85)]">Password</Label>
               <div className="relative">
                 <Lock className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(255,245,235,0.5)]" />
                 <Input
-                  type="text"
+                  type={showPassword ? "text" : "password"}
                   required
-                  value={storeId}
-                  onChange={(e) => setStoreId(e.target.value)}
-                  placeholder="ST-KON3R9I1A9M"
-                  className="pl-9 bg-white/10 border-white/20 text-[#fff5eb] placeholder:text-[rgba(255,245,235,0.4)]"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="9-character password"
+                  className="pl-9 pr-11 bg-white/10 border-cyan-100/20 text-cyan-50 placeholder:text-cyan-50/35"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-cyan-50/65 hover:bg-white/10 hover:text-cyan-50"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
               </div>
             </div>
 
@@ -291,8 +306,8 @@ function AuthPage() {
               disabled={busy}
               className="w-full rounded-full btn-glow h-10 sm:h-11 text-sm sm:text-base"
               style={{
-                background: "linear-gradient(135deg, #c98a5a 0%, #7a4a2a 100%)",
-                color: "#fff5eb",
+                background: "linear-gradient(135deg, #68d7eb 0%, #2f86ad 100%)",
+                color: "#06182b",
               }}
             >
               {busy ? "Verifying..." : (
@@ -305,8 +320,9 @@ function AuthPage() {
           </form>
 
           <p className="text-center text-xs mt-6 text-[rgba(255,245,235,0.55)]">
-            Partner-only access. Contact admin if you forgot your Store ID.
+            Partner-only access. Contact admin if you forgot your store email or password.
           </p>
+          </div>
         </div>
       </motion.div>
     </div>

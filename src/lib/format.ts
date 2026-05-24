@@ -4,9 +4,9 @@ export const formatINR = (n: number) =>
 export const genId = (prefix: string) =>
   `${prefix}${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
 
-const STORE_ID_PREFIX = "ST-KON";
 const STORE_ID_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const STORE_ID_DIGITS = "0123456789";
+const STORE_PASSWORD_SYMBOLS = "!@#$%";
 
 function randomIndex(max: number) {
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {
@@ -33,5 +33,22 @@ export function generateStoreId() {
   const digits = Array.from({ length: 4 }, () => STORE_ID_DIGITS[randomIndex(STORE_ID_DIGITS.length)]);
   const letters = Array.from({ length: 4 }, () => STORE_ID_LETTERS[randomIndex(STORE_ID_LETTERS.length)]);
 
-  return `${STORE_ID_PREFIX}${shuffle([...digits, ...letters]).join("")}`.toUpperCase();
+  return `KONG${shuffle([...digits, ...letters]).join("")}`.toUpperCase();
+}
+
+export function formatSequentialStoreId(sequence: number) {
+  return `KONG${String(sequence).padStart(4, "0")}`;
+}
+
+export function generateStorePassword() {
+  const required = [
+    STORE_ID_LETTERS[randomIndex(STORE_ID_LETTERS.length)],
+    STORE_ID_LETTERS[randomIndex(STORE_ID_LETTERS.length)].toLowerCase(),
+    STORE_ID_DIGITS[randomIndex(STORE_ID_DIGITS.length)],
+    STORE_PASSWORD_SYMBOLS[randomIndex(STORE_PASSWORD_SYMBOLS.length)],
+  ];
+  const all = `${STORE_ID_LETTERS}${STORE_ID_LETTERS.toLowerCase()}${STORE_ID_DIGITS}${STORE_PASSWORD_SYMBOLS}`;
+  const rest = Array.from({ length: 5 }, () => all[randomIndex(all.length)]);
+
+  return shuffle([...required, ...rest]).join("");
 }

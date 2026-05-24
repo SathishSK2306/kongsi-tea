@@ -146,41 +146,43 @@ function AppShell() {
 function AuthedShell() {
   const [storeSession, setStoreSession] = useState<StoreSession | null>(() => getStoreSession());
   const [checkingStore, setCheckingStore] = useState(true);
+  const [checkedSessionKey, setCheckedSessionKey] = useState<string | null>(null);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
+  const currentSessionKey = `${path}:${storeSession?.id ?? "none"}`;
 
   useEffect(() => {
     const session = getStoreSession();
+    const nextSessionKey = `${path}:${session?.id ?? "none"}`;
     setStoreSession(session);
+    setCheckedSessionKey(null);
 
     if (!session) {
       setCheckingStore(false);
-      router.navigate({ to: "/auth", search: { redirect: path } });
+      router.navigate({ to: "/auth", search: { redirect: path }, replace: true });
       return;
     }
 
     setCheckingStore(true);
     supabase
-      .from("stores")
-      .select("id, store_id, store_name, owner_name, email, phone, address, status")
-      .eq("id", session.id)
-      .eq("status", "active")
-      .maybeSingle()
+      .rpc("get_store_session", { p_store_uuid: session.id })
       .then(({ data }) => {
-        if (!data) {
+        const store = data?.[0] ?? null;
+        if (!store) {
           clearStoreSession();
           setStoreSession(null);
-          router.navigate({ to: "/auth", search: { redirect: path } });
+          router.navigate({ to: "/auth", search: { redirect: path }, replace: true });
           return;
         }
 
-        saveStoreSession(data);
-        setStoreSession(data);
+        saveStoreSession(store);
+        setStoreSession(store);
+        setCheckedSessionKey(nextSessionKey);
       })
       .finally(() => setCheckingStore(false));
   }, [path, router]);
 
-  if (checkingStore || !storeSession) {
+  if (checkingStore || !storeSession || checkedSessionKey !== currentSessionKey) {
     return (
       <div className="min-h-[60vh] grid place-items-center text-sm text-muted-foreground">
         Loading…

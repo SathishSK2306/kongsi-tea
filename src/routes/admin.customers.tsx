@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Plus, Trash2, Edit2, X } from "lucide-react";
 import { toast } from "sonner";
-import { generateStoreId } from "@/lib/format";
+import { formatSequentialStoreId, generateStorePassword } from "@/lib/format";
 
 const emptyStore = {
   store_name: "",
@@ -31,6 +31,7 @@ function AdminCustomersPage() {
   const [form, setForm] = useState(emptyStore);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [credentialsReady, setCredentialsReady] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -44,15 +45,42 @@ function AdminCustomersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
-        .select("id, store_id, store_name, owner_name, phone, address, email, status");
-      if (error) throw error;
+        .select("id, store_id, store_password, store_name, owner_name, phone, address, email, status")
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (error.code === "42703" || error.code === "PGRST204" || error.message?.includes("store_password")) {
+          setCredentialsReady(false);
+          const fallback = await supabase
+            .from("stores")
+            .select("id, store_id, store_name, owner_name, phone, address, email, status")
+            .order("created_at", { ascending: false });
+
+          if (fallback.error) throw fallback.error;
+          return (fallback.data ?? []).map((store) => ({ ...store, store_password: null }));
+        }
+
+        throw error;
+      }
+      setCredentialsReady(true);
       return data;
     },
   });
 
   async function createUniqueStoreId() {
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      const storeId = generateStoreId();
+    const { data, error } = await supabase
+      .from("stores")
+      .select("store_id")
+      .like("store_id", "KONG%");
+
+    if (error) throw error;
+
+    const usedNumbers = (data ?? [])
+      .map((store) => Number(store.store_id?.replace(/^KONG/, "")))
+      .filter((value) => Number.isInteger(value) && value > 0);
+    let next = usedNumbers.length > 0 ? Math.max(...usedNumbers) + 1 : 1;
+
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      const storeId = formatSequentialStoreId(next + attempt);
       const { data, error } = await supabase
         .from("stores")
         .select("id")
@@ -66,12 +94,34 @@ function AdminCustomersPage() {
     throw new Error("Unable to generate a unique store ID.");
   }
 
+  async function createUniqueStorePassword() {
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      const password = generateStorePassword();
+      const { data, error } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("store_password", password)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return password;
+    }
+
+    throw new Error("Unable to generate a unique store password.");
+  }
+
   async function handleStoreSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
 
     if (!form.store_name.trim()) {
       toast.error("Store name is required.");
+      setSaving(false);
+      return;
+    }
+
+    if (!editingId && !credentialsReady) {
+      toast.error("Apply the latest Supabase migration before adding stores with passwords.");
       setSaving(false);
       return;
     }
@@ -94,9 +144,11 @@ function AdminCustomersPage() {
         toast.success("Store updated successfully.");
       } else {
         const storeId = await createUniqueStoreId();
+        const storePassword = await createUniqueStorePassword();
 
         const { error } = await supabase.from("stores").insert({
           store_id: storeId,
+          store_password: storePassword,
           user_id: user?.id,
           store_name: form.store_name.trim(),
           owner_name: form.owner_name.trim(),
@@ -183,6 +235,11 @@ function AdminCustomersPage() {
                 </p>
               </div>
             </div>
+            {!credentialsReady && (
+              <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700">
+                The live database is missing the <span className="font-mono">store_password</span> column. Apply the latest Supabase migration, then add stores again.
+              </div>
+            )}
             <form onSubmit={handleStoreSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="store_name">Store name</Label>
@@ -276,7 +333,7 @@ function AdminCustomersPage() {
             ) : error ? (
               <div className="rounded-2xl bg-red-500/10 border border-red-500/20 p-6 text-red-700">
                 <p className="font-medium">Unable to load store data.</p>
-                <p className="mt-2 text-sm">{String(error)}</p>
+                <p className="mt-2 text-sm">{error instanceof Error ? error.message : JSON.stringify(error)}</p>
                 <p className="mt-3 text-sm text-muted-foreground">Ensure you are signed in with the admin account.</p>
               </div>
             ) : !stores || stores.length === 0 ? (
@@ -310,6 +367,12 @@ function AdminCustomersPage() {
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 text-sm text-muted-foreground">
                       <p>{store.email}</p>
                       <p>{store.phone}</p>
+                      <p>
+                        Password:{" "}
+                        <span className="font-mono font-semibold text-foreground">
+                          {store.store_password || "Not generated"}
+                        </span>
+                      </p>
                       <p className="sm:col-span-2">{store.address}</p>
                     </div>
                   </div>

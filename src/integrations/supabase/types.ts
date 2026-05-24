@@ -170,6 +170,7 @@ export type Database = {
           phone: string
           status: string
           store_id: string
+          store_password: string | null
           store_name: string
           user_id: string | null
         }
@@ -182,6 +183,7 @@ export type Database = {
           phone: string
           status?: string
           store_id: string
+          store_password?: string | null
           store_name: string
           user_id?: string | null
         }
@@ -194,10 +196,61 @@ export type Database = {
           phone?: string
           status?: string
           store_id?: string
+          store_password?: string | null
           store_name?: string
           user_id?: string | null
         }
         Relationships: []
+      }
+      damage_reports: {
+        Row: {
+          contact: string
+          created_at: string
+          customer_name: string
+          id: string
+          image_url: string
+          message: string
+          order_id: string
+          status: string
+          store_id: string
+          store_name: string
+          store_uuid: string | null
+        }
+        Insert: {
+          contact: string
+          created_at?: string
+          customer_name: string
+          id?: string
+          image_url: string
+          message: string
+          order_id: string
+          status?: string
+          store_id: string
+          store_name: string
+          store_uuid?: string | null
+        }
+        Update: {
+          contact?: string
+          created_at?: string
+          customer_name?: string
+          id?: string
+          image_url?: string
+          message?: string
+          order_id?: string
+          status?: string
+          store_id?: string
+          store_name?: string
+          store_uuid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damage_reports_store_uuid_fkey"
+            columns: ["store_uuid"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -231,6 +284,37 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      verify_store_login: {
+        Args: {
+          p_email: string
+          p_password: string
+        }
+        Returns: {
+          address: string
+          email: string | null
+          id: string
+          owner_name: string
+          phone: string
+          status: string
+          store_id: string
+          store_name: string
+        }[]
+      }
+      get_store_session: {
+        Args: {
+          p_store_uuid: string
+        }
+        Returns: {
+          address: string
+          email: string | null
+          id: string
+          owner_name: string
+          phone: string
+          status: string
+          store_id: string
+          store_name: string
+        }[]
       }
     }
     Enums: {

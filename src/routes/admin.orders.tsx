@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { formatINR } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarDays, CreditCard, FileText, PackageCheck, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarDays, CreditCard, FileText, PackageCheck, Printer, Trash2, X } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrdersPage,
@@ -19,6 +19,9 @@ function AdminOrdersPage() {
   const queryClient = useQueryClient();
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [savingReportId, setSavingReportId] = useState<string | null>(null);
+  const [billOrder, setBillOrder] = useState<any | null>(null);
+  const [reportStatusUpdates, setReportStatusUpdates] = useState<Record<string, string>>({});
   const [orderStatusUpdates, setOrderStatusUpdates] = useState<Record<string, { order_status: string; payment_status: string }>>({});
 
   useEffect(() => {
@@ -34,8 +37,21 @@ function AdminOrdersPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          `id, order_id, customer_name, phone, address, total_amount, order_status, payment_status, created_at, store_id, store:store_id(store_id, store_name, owner_name, email)`
+          `id, order_id, customer_name, phone, address, total_amount, order_status, payment_status, created_at, store_id, notes, order_items(id, product_name, quantity, price, subtotal), store:store_id(store_id, store_name, owner_name, email)`
         )
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: damageReports, isLoading: reportsLoading, error: reportsError } = useQuery({
+    queryKey: ["admin-damage-reports"],
+    enabled: !authLoading && isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("damage_reports")
+        .select("id, store_name, store_id, customer_name, contact, order_id, image_url, message, status, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -58,6 +74,15 @@ function AdminOrdersPage() {
     setOrderStatusUpdates(updates);
   }, [orders]);
 
+  useEffect(() => {
+    if (!damageReports) return;
+    const updates: Record<string, string> = {};
+    damageReports.forEach((report) => {
+      updates[report.id] = report.status || "unsolved";
+    });
+    setReportStatusUpdates(updates);
+  }, [damageReports]);
+
   const orderStatusOptions = [
   "pending",
   "confirmed",
@@ -65,6 +90,7 @@ function AdminOrdersPage() {
   "delivered",
 ];
   const paymentStatusOptions = ["paid", "unpaid"];
+  const complaintStatusOptions = ["unsolved", "solved"];
 
   async function handleSaveOrderUpdate(orderId: string) {
     const update = orderStatusUpdates[orderId];
@@ -159,8 +185,35 @@ function AdminOrdersPage() {
   }
 }
 
-  function handleDownloadPDF(orderDisplayId: string) {
-    toast.success(`PDF downloaded for order ${orderDisplayId}`);
+  function handleDownloadPDF(order: NonNullable<typeof orders>[number]) {
+    setBillOrder(order);
+  }
+
+  function handlePrintBill() {
+    window.print();
+  }
+
+  async function handleSaveReportStatus(reportId: string) {
+    const status = reportStatusUpdates[reportId];
+    if (!status) return;
+
+    setSavingReportId(reportId);
+    try {
+      const { error } = await supabase
+        .from("damage_reports")
+        .update({ status } as never)
+        .eq("id", reportId);
+
+      if (error) throw error;
+
+      toast.success("Complaint status updated.");
+      queryClient.invalidateQueries({ queryKey: ["admin-damage-reports"] });
+    } catch (err) {
+      console.error(err);
+      toast.error("Unable to update complaint status.");
+    } finally {
+      setSavingReportId(null);
+    }
   }
 
   function updateOrderStatusState(orderId: string, field: "order_status" | "payment_status", value: string) {
@@ -181,6 +234,8 @@ function AdminOrdersPage() {
     orders?.filter((order) => (order.order_status || "pending") === "pending").length ?? 0;
   const paidOrders =
     orders?.filter((order) => (order.payment_status || "unpaid") === "paid").length ?? 0;
+  const openReports =
+    damageReports?.filter((report) => (report.status || "unsolved") !== "solved").length ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-card/20 p-3 sm:p-4 md:p-8">
@@ -198,7 +253,7 @@ function AdminOrdersPage() {
           </Link>
         </div>
 
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="glass border border-border/60 rounded-2xl p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -230,6 +285,96 @@ function AdminOrdersPage() {
               <CreditCard className="size-5 text-primary" />
             </div>
           </div>
+          <div className="glass border border-border/60 rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Complaints</p>
+                <p className="mt-2 font-serif text-3xl">{reportsLoading ? "..." : openReports}</p>
+              </div>
+              <AlertTriangle className="size-5 text-primary" />
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 glass border border-border/60 rounded-3xl p-4 sm:p-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold">Complaints</h2>
+              <p className="text-sm text-muted-foreground">Damage reports submitted from customer accounts.</p>
+            </div>
+            <div className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
+              {damageReports?.length ?? 0} reports
+            </div>
+          </div>
+
+          {reportsLoading ? (
+            <div className="py-8 text-center text-muted-foreground">Loading complaints...</div>
+          ) : reportsError ? (
+            <div className="rounded-2xl border border-red-300/70 bg-red-50 p-4 text-sm text-red-700">
+              Unable to load complaints. Apply the latest damage reports migration if this is a fresh database.
+            </div>
+          ) : !damageReports || damageReports.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">No complaints registered yet.</div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {damageReports.map((report) => (
+                <div key={report.id} className="rounded-2xl border border-border/60 bg-card/40 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{report.order_id}</p>
+                      <h3 className="mt-1 text-lg font-semibold">{report.customer_name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {report.store_name} · {report.store_id}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">{report.contact}</p>
+                    </div>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+                      <select
+                        value={reportStatusUpdates[report.id] || report.status || "unsolved"}
+                        onChange={(e) =>
+                          setReportStatusUpdates((prev) => ({
+                            ...prev,
+                            [report.id]: e.target.value,
+                          }))
+                        }
+                        className="rounded-xl border border-border bg-background/80 px-3 py-2 text-sm capitalize"
+                      >
+                        {complaintStatusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={savingReportId === report.id || (reportStatusUpdates[report.id] || "unsolved") === (report.status || "unsolved")}
+                        onClick={() => handleSaveReportStatus(report.id)}
+                        className="rounded-full"
+                      >
+                        {savingReportId === report.id ? "Saving..." : "Save Status"}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm leading-6">{report.message}</p>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span>{new Date(report.created_at).toLocaleString()}</span>
+                    {report.image_url && (
+                      <a
+                        href={report.image_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex rounded-full border border-border px-3 py-1 font-medium text-foreground hover:bg-muted"
+                      >
+                        View Image
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="glass border border-border/60 rounded-3xl overflow-hidden">
@@ -334,8 +479,8 @@ function AdminOrdersPage() {
                             variant="outline"
                             size="icon"
                             className="rounded-full"
-                            title="Download PDF"
-                            onClick={() => handleDownloadPDF(order.order_id)}
+                            title="Print Bill"
+                            onClick={() => handleDownloadPDF(order)}
                           >
                             <FileText className="size-4" />
                           </Button>
@@ -360,6 +505,171 @@ function AdminOrdersPage() {
           )}
         </div>
       </div>
+
+      {billOrder && (
+        <div className="fixed inset-0 z-[80] bg-black/70 p-3 backdrop-blur-sm print:static print:bg-white print:p-0">
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #bill-print-area, #bill-print-area * {
+                visibility: visible !important;
+              }
+              #bill-print-area {
+                position: absolute !important;
+                inset: 0 auto auto 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+              }
+              @page {
+                size: A4;
+                margin: 12mm;
+              }
+            }
+          `}</style>
+          <div className="mx-auto flex max-h-[calc(100dvh-1.5rem)] max-w-3xl flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl print:max-h-none print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:bg-white print:shadow-none">
+            <div className="flex items-center justify-between gap-3 border-b border-border p-4 print:hidden">
+              <div>
+                <h2 className="text-xl font-semibold">Bill Preview</h2>
+                <p className="text-sm text-muted-foreground">Order {billOrder.order_id}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="button" onClick={handlePrintBill} className="rounded-full gap-2">
+                  <Printer className="size-4" />
+                  Print Bill
+                </Button>
+                <Button type="button" variant="ghost" size="icon" onClick={() => setBillOrder(null)} className="rounded-full">
+                  <X className="size-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-4 sm:p-6 print:overflow-visible print:p-0">
+              <div id="bill-print-area">
+                <BillPreview order={billOrder} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BillPreview({ order }: { order: any }) {
+  const items = (order.order_items || []) as Array<{
+    id: string;
+    product_name: string;
+    quantity: number;
+    price: number;
+    subtotal: number;
+  }>;
+  const total = Number(order.total_amount || 0);
+  const subtotal = items.length > 0 ? items.reduce((sum, item) => sum + Number(item.subtotal || 0), 0) : total;
+  const delivery = Math.max(total - subtotal, 0);
+
+  return (
+    <div className="mx-auto max-w-[720px] bg-white p-6 text-slate-950 shadow-sm print:max-w-none print:p-8 print:shadow-none">
+      <div className="border-b-2 border-slate-900 pb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Kongsi</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-wide">Tax Invoice</h1>
+            <p className="mt-2 text-sm text-slate-600">Wholesale coffee, tea and cafe supplies</p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-sm font-semibold">Order ID</p>
+            <p className="font-mono text-lg">{order.order_id}</p>
+            <p className="mt-2 text-sm text-slate-600">{new Date(order.created_at).toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 border-b border-slate-200 py-5 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Bill To</p>
+          <h2 className="mt-2 text-lg font-semibold">{order.customer_name}</h2>
+          <p className="mt-1 text-sm text-slate-700">{order.phone}</p>
+          <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{order.address}</p>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Store</p>
+          <h2 className="mt-2 text-lg font-semibold">{order.store?.store_name ?? "Store details unavailable"}</h2>
+          <p className="mt-1 text-sm text-slate-700">{order.store?.store_id ?? order.store_id}</p>
+          <p className="mt-1 text-sm text-slate-700">{order.store?.email ?? ""}</p>
+        </div>
+      </div>
+
+      <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-100 text-xs uppercase tracking-[0.12em] text-slate-600">
+            <tr>
+              <th className="px-4 py-3">Item</th>
+              <th className="px-4 py-3 text-center">Qty</th>
+              <th className="px-4 py-3 text-right">Rate</th>
+              <th className="px-4 py-3 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {items.length === 0 ? (
+              <tr>
+                <td className="px-4 py-5 text-slate-600" colSpan={4}>
+                  No line items available for this order.
+                </td>
+              </tr>
+            ) : (
+              items.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-3 font-medium">{item.product_name}</td>
+                  <td className="px-4 py-3 text-center">{item.quantity}</td>
+                  <td className="px-4 py-3 text-right">{formatINR(Number(item.price || 0))}</td>
+                  <td className="px-4 py-3 text-right font-semibold">{formatINR(Number(item.subtotal || 0))}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="ml-auto mt-5 w-full max-w-sm space-y-2 text-sm">
+        <div className="flex justify-between border-b border-slate-200 pb-2">
+          <span className="text-slate-600">Subtotal</span>
+          <span className="font-semibold">{formatINR(subtotal)}</span>
+        </div>
+        <div className="flex justify-between border-b border-slate-200 pb-2">
+          <span className="text-slate-600">Delivery</span>
+          <span className="font-semibold">{delivery > 0 ? formatINR(delivery) : "Free"}</span>
+        </div>
+        <div className="flex justify-between pt-2 text-xl font-bold">
+          <span>Total</span>
+          <span>{formatINR(total)}</span>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-4 border-t border-slate-200 pt-5 text-sm sm:grid-cols-3">
+        <div>
+          <p className="font-semibold">Order Status</p>
+          <p className="mt-1 capitalize text-slate-600">{order.order_status || "pending"}</p>
+        </div>
+        <div>
+          <p className="font-semibold">Payment</p>
+          <p className="mt-1 capitalize text-slate-600">{order.payment_status || "unpaid"}</p>
+        </div>
+        <div>
+          <p className="font-semibold">Generated</p>
+          <p className="mt-1 text-slate-600">{new Date().toLocaleString()}</p>
+        </div>
+      </div>
+
+      {order.notes && (
+        <div className="mt-5 rounded-xl bg-slate-100 p-4 text-sm text-slate-700">
+          <span className="font-semibold text-slate-900">Notes: </span>
+          {order.notes}
+        </div>
+      )}
+
+      <p className="mt-8 text-center text-xs text-slate-500">Thank you for ordering with Kongsi.</p>
     </div>
   );
 }
