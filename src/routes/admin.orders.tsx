@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatINR } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, CalendarDays, CreditCard, FileText, PackageCheck, Printer, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarDays, CreditCard, FileText, PackageCheck, Printer, Search, Trash2, X } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrdersPage,
@@ -21,6 +21,10 @@ function AdminOrdersPage() {
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const [savingReportId, setSavingReportId] = useState<string | null>(null);
   const [billOrder, setBillOrder] = useState<any | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [fromDateInput, setFromDateInput] = useState("");
+  const [toDateInput, setToDateInput] = useState("");
+  const [filters, setFilters] = useState({ search: "", fromDate: "", toDate: "" });
   const [reportStatusUpdates, setReportStatusUpdates] = useState<Record<string, string>>({});
   const [orderStatusUpdates, setOrderStatusUpdates] = useState<Record<string, { order_status: string; payment_status: string }>>({});
 
@@ -226,14 +230,63 @@ function AdminOrdersPage() {
     }));
   }
 
+  function applyOrderFilters(e?: React.FormEvent) {
+    e?.preventDefault();
+    setFilters({
+      search: searchInput.trim().toLowerCase(),
+      fromDate: fromDateInput,
+      toDate: toDateInput,
+    });
+  }
+
+  function clearOrderFilters() {
+    setSearchInput("");
+    setFromDateInput("");
+    setToDateInput("");
+    setFilters({ search: "", fromDate: "", toDate: "" });
+  }
+
+  const filteredOrders = useMemo(() => {
+    const source = orders ?? [];
+    const fromTime = filters.fromDate ? new Date(`${filters.fromDate}T00:00:00`).getTime() : null;
+    const toTime = filters.toDate ? new Date(`${filters.toDate}T23:59:59.999`).getTime() : null;
+
+    return source.filter((order) => {
+      const orderTime = new Date(order.created_at).getTime();
+      const matchesDate =
+        (fromTime === null || orderTime >= fromTime) &&
+        (toTime === null || orderTime <= toTime);
+
+      if (!matchesDate) return false;
+
+      if (!filters.search) return true;
+
+      const haystack = [
+        order.order_id,
+        order.customer_name,
+        order.phone,
+        order.address,
+        order.store?.store_name,
+        order.store?.email,
+        order.store?.store_id,
+        order.store_id,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(filters.search);
+    });
+  }, [filters, orders]);
+
   if (authLoading || !isAdmin) return null;
 
   const totalRevenue =
-    orders?.reduce((sum, order) => sum + Number(order.total_amount || 0), 0) ?? 0;
+    filteredOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
   const pendingOrders =
-    orders?.filter((order) => (order.order_status || "pending") === "pending").length ?? 0;
+    filteredOrders.filter((order) => (order.order_status || "pending") === "pending").length;
   const paidOrders =
-    orders?.filter((order) => (order.payment_status || "unpaid") === "paid").length ?? 0;
+    filteredOrders.filter((order) => (order.payment_status || "unpaid") === "paid").length;
   const openReports =
     damageReports?.filter((report) => (report.status || "unsolved") !== "solved").length ?? 0;
 
@@ -258,7 +311,7 @@ function AdminOrdersPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="mt-2 font-serif text-3xl">{isLoading ? "..." : orders?.length ?? 0}</p>
+                <p className="mt-2 font-serif text-3xl">{isLoading ? "..." : filteredOrders.length}</p>
               </div>
               <PackageCheck className="size-5 text-primary" />
             </div>
@@ -295,6 +348,69 @@ function AdminOrdersPage() {
             </div>
           </div>
         </div>
+
+        <form onSubmit={applyOrderFilters} className="mb-6 glass border border-border/60 rounded-3xl p-4 sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold">Search Orders</h2>
+            <p className="text-sm text-muted-foreground">
+              Search by store email, store name, customer name, contact number, store ID, or order ID.
+            </p>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr_1fr_auto_auto]">
+            <div>
+              <label htmlFor="order_search" className="mb-1.5 block text-sm text-muted-foreground">
+                Search
+              </label>
+              <input
+                id="order_search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Store email, name, phone..."
+                className="h-11 w-full rounded-xl border border-border bg-background/80 px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+            <div>
+              <label htmlFor="from_date" className="mb-1.5 block text-sm text-muted-foreground">
+                From date
+              </label>
+              <input
+                id="from_date"
+                type="date"
+                value={fromDateInput}
+                onChange={(e) => setFromDateInput(e.target.value)}
+                className="h-11 w-full rounded-xl border border-border bg-background/80 px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+            <div>
+              <label htmlFor="to_date" className="mb-1.5 block text-sm text-muted-foreground">
+                To date
+              </label>
+              <input
+                id="to_date"
+                type="date"
+                value={toDateInput}
+                onChange={(e) => setToDateInput(e.target.value)}
+                className="h-11 w-full rounded-xl border border-border bg-background/80 px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button type="submit" className="h-11 w-full rounded-full gap-2">
+                <Search className="size-4" />
+                Search
+              </Button>
+            </div>
+            <div className="flex items-end">
+              <Button type="button" variant="secondary" onClick={clearOrderFilters} className="h-11 w-full rounded-full">
+                Clear
+              </Button>
+            </div>
+          </div>
+          {(filters.search || filters.fromDate || filters.toDate) && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Showing {filteredOrders.length} matching order{filteredOrders.length === 1 ? "" : "s"}.
+            </p>
+          )}
+        </form>
 
         <div className="mb-6 glass border border-border/60 rounded-3xl p-4 sm:p-6">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -387,6 +503,8 @@ function AdminOrdersPage() {
             </div>
           ) : !orders || orders.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">No order history available yet.</div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="py-16 text-center text-muted-foreground">No orders match your search filters.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-[1080px] w-full text-left">
@@ -403,7 +521,7 @@ function AdminOrdersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60 bg-card/40 text-sm">
-                  {orders.map((order) => (
+                  {filteredOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-5 py-5 align-top">
                         <div className="font-semibold">{order.order_id}</div>

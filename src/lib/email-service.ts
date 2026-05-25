@@ -81,6 +81,8 @@ export async function sendOrderEmails(data: OrderEmailData) {
       customer_name: data.customer_name,
       phone: data.phone,
       email: data.email,
+      customer_email: data.email,
+      admin_email: ADMIN_EMAIL,
       address: data.address,
       total_amount: data.total_amount,
       subtotal: data.subtotal,
@@ -102,6 +104,9 @@ export async function sendOrderEmails(data: OrderEmailData) {
       {
         ...templateParams,
         to_email: data.email,
+        to_name: data.customer_name,
+        user_email: data.email,
+        reply_to: ADMIN_EMAIL,
       }
     );
     console.log('✅ Customer email sent:', customerResponse.status);
@@ -113,6 +118,9 @@ export async function sendOrderEmails(data: OrderEmailData) {
       {
         ...templateParams,
         to_email: ADMIN_EMAIL,
+        to_name: "Kongsi Admin",
+        user_email: ADMIN_EMAIL,
+        reply_to: data.email,
       }
     );
     console.log('✅ Admin email sent:', adminResponse.status);
