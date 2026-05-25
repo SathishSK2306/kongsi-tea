@@ -104,6 +104,26 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en" className="dark">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                try {
+                  var path = window.location.pathname;
+                  var isPublic = path.indexOf('/auth') === 0 || path.indexOf('/admin') === 0;
+                  if (isPublic) return;
+
+                  var session = window.localStorage.getItem('kongsi_store_session');
+                  if (!session) {
+                    window.location.replace('/auth?redirect=' + encodeURIComponent(path + window.location.search));
+                  }
+                } catch (error) {
+                  window.location.replace('/auth');
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         {children}
